@@ -167,3 +167,12 @@ un outil `unavailable` reste indisponible. Les dates passées restent interdites
 Le front propose donc les dates pour les outils disponibles ou prêtés.
 Les opérations verrouillent d'abord l'outil puis les locations dans une transaction,
 pour empêcher deux acceptations concurrentes de prêts qui se chevauchent sous MySQL.
+
+## US-07 : déclarer le retour
+
+Dans « Demandes reçues pour mes outils », le propriétaire clique sur « Déclarer le retour »
+pour un prêt accepté. `PATCH /api/loans/{id}/return` avec `X-User-Id` (sans corps)
+passe le prêt à `returned` et l’outil à `available` dans la même transaction.
+Autre utilisateur : 403 ; prêt inconnu : 404 ; prêt non accepté ou déjà rendu : 409.
+Les verrous suivent le même ordre que les acceptations (outil, puis location).
+Un prêt rendu ne bloque plus les demandes sur ses anciennes dates.

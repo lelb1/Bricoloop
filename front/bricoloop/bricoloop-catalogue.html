@@ -130,12 +130,13 @@ async function loadReceived(){
   for(const loan of data){
    const card=el('article','tool');const body=el('div','details');
    body.append(el('h3','',loan.toolName),el('p','',`${loan.borrower.firstName} — ${loan.borrower.district}`),el('p','',`Du ${loan.startDate} au ${loan.endDate}`),el('p','',loanStatusNames[loan.status]||loan.status));
-   if(loan.status==='pending')for(const [status,label] of [['accepted','Accepter'],['refused','Refuser']]){
+   const actions=loan.status==='pending'?[['accepted','Accepter'],['refused','Refuser']]:loan.status==='accepted'?[['returned','Déclarer le retour']]:[];
+   for(const [status,label] of actions){
     const button=el('button','smallbtn',label);button.type='button';
     button.addEventListener('click',async()=>{
      const buttons=body.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);
      try{
-      const result=await fetch(`${API_URL}/api/loans/${loan.id}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Id':user},body:JSON.stringify({status})});
+      const result=await fetch(`${API_URL}/api/loans/${loan.id}${status==='returned'?'/return':''}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Id':user},body:status==='returned'?undefined:JSON.stringify({status})});
       const decision=await result.json();
       if(!result.ok)throw new Error(Array.isArray(decision.detail)?decision.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):decision.detail||'Décision impossible');
       await Promise.all([loadReceived(),loadTools()]);

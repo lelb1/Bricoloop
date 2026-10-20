@@ -201,6 +201,31 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.refresh(loan)
         return loan
 
+    @app.patch("/api/loans/{loan_id}/return", response_model=Loan)
+    def return_loan(
+        loan_id: int,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        tool_id = session.scalar(select(LocationRow.toolId).where(LocationRow.id == loan_id))
+        if tool_id is None:
+            raise HTTPException(status_code=404, detail="Demande introuvable")
+        tool = session.scalar(select(ToolRow).where(ToolRow.id == tool_id).with_for_update())
+        loan = session.scalar(
+            select(LocationRow).where(LocationRow.id == loan_id).with_for_update()
+        )
+        if tool.ownerId != user_id:
+            raise HTTPException(
+                status_code=403, detail="Seul le propriétaire peut déclarer le retour"
+            )
+        if loan.status != "accepted":
+            raise HTTPException(status_code=409, detail="Seul un prêt accepté peut être rendu")
+        loan.status = "returned"
+        tool.status = "available"
+        session.commit()
+        session.refresh(loan)
+        return loan
+
     @app.get("/api/users", response_model=list[User])
     def list_users(session: DbSession):
         return session.scalars(select(UserRow).order_by(UserRow.id)).all()
