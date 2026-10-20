@@ -87,3 +87,7 @@ class LoanDecision(BaseModel):
 class ReceivedLoan(Loan):
     toolName: str
     borrower: User
+
+
+class BorrowedLoan(Loan):
+    toolName: str

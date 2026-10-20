@@ -14,6 +14,7 @@
 <section class="summary" aria-label="Profil et ajout"><div class="control"><label for="profile">Mon profil</label><select id="profile" disabled><option value="">Chargement des profils…</option></select></div><button class="button" id="openAdd" disabled>+ Proposer un outil</button></section><p id="saveNotice" role="status"></p>
 <div class="summary"><div><h2>Les outils disponibles</h2><p id="count" aria-live="polite"></p></div><span class="source" id="source">Connexion à l’API…</span></div>
 <div id="notice" class="notice" role="status">Chargement des outils depuis la base de données…</div>
+<section aria-labelledby="myLoansTitle"><h2 id="myLoansTitle">Mes emprunts</h2><button class="smallbtn" id="refreshMine" type="button">Actualiser mes emprunts</button><p id="mineMessage" role="status">Choisissez votre profil.</p><div id="myLoans"></div></section>
 <section aria-labelledby="receivedTitle"><h2 id="receivedTitle">Demandes reçues pour mes outils</h2><button class="smallbtn" id="refreshReceived" type="button">Actualiser les demandes</button><p id="receivedMessage" role="status">Choisissez votre profil.</p><div id="receivedLoans"></div></section>
 <div class="grid" id="catalogue" aria-live="polite"></div><footer class="footer">BricoLoop · Projet EPSI B3 · US-01 — Catalogue des outils</footer></main>
 <dialog class="dialog" id="details"><h2 id="detailName"></h2><p id="detailText"></p><form id="editEtatForm" hidden><div class="control"><label for="editEtat">Modifier l’état physique</label><textarea id="editEtat" maxlength="300" rows="3"></textarea></div><button class="button" id="saveEtat" type="submit">Enregistrer l’état</button></form><p id="etatMessage" role="status"></p><form id="loanForm" hidden><h3>Demander l’emprunt</h3><div class="control"><label for="loanStart">Date de début</label><input id="loanStart" type="date" required></div><div class="control"><label for="loanEnd">Date de fin</label><input id="loanEnd" type="date" required></div><button class="button" id="submitLoan" type="submit">Envoyer la demande</button></form><p id="loanMessage" role="status"></p><button class="button" id="closeDialog">Fermer</button></dialog>
@@ -112,7 +113,7 @@ $('loanForm').addEventListener('submit',async(event)=>{
   const response=await fetch(`${API_URL}/api/tools/${currentDetail.id}/loans`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify({startDate:$('loanStart').value,endDate:$('loanEnd').value})});
   const data=await response.json();
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Demande impossible');
-  $('loanMessage').textContent=`Demande n°${data.id} envoyée : en attente du propriétaire.`;$('loanForm').reset();updateLoanDates();
+  $('loanMessage').textContent=`Demande n°${data.id} envoyée : en attente du propriétaire.`;$('loanForm').reset();updateLoanDates();await loadMine();
  }catch(error){$('loanMessage').textContent=error.message}finally{button.disabled=false}
 });
 function updateLoanDates(){ $('loanEnd').min=$('loanStart').min }
@@ -149,6 +150,19 @@ async function loadReceived(){
  }catch(error){if(user===$('profile').value)$('receivedMessage').textContent=error.message}
 }
 $('refreshReceived').addEventListener('click',loadReceived);
+async function loadMine(){
+ const user=$('profile').value;const root=$('myLoans');root.replaceChildren();
+ if(!user){$('mineMessage').textContent='Choisissez votre profil.';return}
+ $('mineMessage').textContent='Chargement…';
+ try{
+  const response=await fetch(`${API_URL}/api/loans/mine`,{headers:{'X-User-Id':user}});
+  const data=await response.json();if(user!==$('profile').value)return;
+  if(!response.ok)throw new Error('Impossible de charger mes emprunts');
+  $('mineMessage').textContent=data.length?'':'Aucun emprunt pour le moment.';
+  for(const loan of data){const card=el('article','tool');const body=el('div','details');body.append(el('h3','',loan.toolName),el('p','',`Du ${loan.startDate} au ${loan.endDate}`),el('p','',loanStatusNames[loan.status]||loan.status));card.append(body);root.append(card)}
+ }catch(error){if(user===$('profile').value)$('mineMessage').textContent=error.message}
+}
+$('refreshMine').addEventListener('click',loadMine);
 async function loadUsers(){
  try{
   const response=await fetch(`${API_URL}/api/users`);
@@ -159,7 +173,7 @@ async function loadUsers(){
   $('profile').disabled=false;
  }catch(error){$('saveNotice').textContent=error.message}
 }
-$('profile').addEventListener('change',()=>{$('openAdd').disabled=!$('profile').value;updateEtatEditor();loadReceived()});
+$('profile').addEventListener('change',()=>{$('openAdd').disabled=!$('profile').value;updateEtatEditor();loadReceived();loadMine()});
 $('openAdd').addEventListener('click',()=>{$('addForm').reset();$('addError').textContent='';$('addDialog').showModal()});
 $('cancelAdd').addEventListener('click',()=>$('addDialog').close());
 $('addForm').addEventListener('submit',async(event)=>{

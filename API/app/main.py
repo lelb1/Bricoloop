@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import LocationRow, ToolRow, UserRow, make_engine
 from app.models import (
+    BorrowedLoan,
     Loan,
     LoanCreate,
     LoanDecision,
@@ -149,6 +150,24 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.commit()
         session.refresh(loan)
         return loan
+
+    @app.get("/api/loans/mine", response_model=list[BorrowedLoan])
+    def my_loans(
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        if session.get(UserRow, user_id) is None:
+            raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
+        rows = session.execute(
+            select(LocationRow, ToolRow.name)
+            .join(ToolRow, LocationRow.toolId == ToolRow.id)
+            .where(LocationRow.borrowerId == user_id)
+            .order_by(LocationRow.startDate, LocationRow.id)
+        ).all()
+        return [
+            BorrowedLoan(**Loan.model_validate(loan).model_dump(), toolName=name)
+            for loan, name in rows
+        ]
 
     @app.get("/api/loans/received", response_model=list[ReceivedLoan])
     def received_loans(

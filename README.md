@@ -176,3 +176,9 @@ passe le prêt à `returned` et l’outil à `available` dans la même transacti
 Autre utilisateur : 403 ; prêt inconnu : 404 ; prêt non accepté ou déjà rendu : 409.
 Les verrous suivent le même ordre que les acceptations (outil, puis location).
 Un prêt rendu ne bloque plus les demandes sur ses anciennes dates.
+
+## US-08 : mes emprunts
+
+`GET /api/loans/mine` avec `X-User-Id` retourne uniquement les demandes et prêts
+de cet utilisateur, triés par date de début croissante. Le front les affiche dans
+« Mes emprunts » avec le nom de l’outil, les dates et le statut.
