@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -53,3 +54,26 @@ class ToolEtatUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     etat: str | None = Field(..., max_length=300)
+
+
+class LoanCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    startDate: date
+    endDate: date
+
+    @field_validator("startDate", "endDate", mode="before")
+    @classmethod
+    def require_iso_date(cls, value):
+        if not isinstance(value, str) or len(value) != 10:
+            raise ValueError("Date attendue au format AAAA-MM-JJ")
+        return date.fromisoformat(value)
+
+
+class Loan(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    toolId: int
+    borrowerId: int
+    startDate: date
+    endDate: date
+    status: Literal["pending", "accepted", "refused", "returned"]

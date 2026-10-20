@@ -15,7 +15,7 @@
 <div class="summary"><div><h2>Les outils disponibles</h2><p id="count" aria-live="polite"></p></div><span class="source" id="source">Connexion à l’API…</span></div>
 <div id="notice" class="notice" role="status">Chargement des outils depuis la base de données…</div>
 <div class="grid" id="catalogue" aria-live="polite"></div><footer class="footer">BricoLoop · Projet EPSI B3 · US-01 — Catalogue des outils</footer></main>
-<dialog class="dialog" id="details"><h2 id="detailName"></h2><p id="detailText"></p><form id="editEtatForm" hidden><div class="control"><label for="editEtat">Modifier l’état physique</label><textarea id="editEtat" maxlength="300" rows="3"></textarea></div><button class="button" id="saveEtat" type="submit">Enregistrer l’état</button></form><p id="etatMessage" role="status"></p><button class="button" id="closeDialog">Fermer</button></dialog>
+<dialog class="dialog" id="details"><h2 id="detailName"></h2><p id="detailText"></p><form id="editEtatForm" hidden><div class="control"><label for="editEtat">Modifier l’état physique</label><textarea id="editEtat" maxlength="300" rows="3"></textarea></div><button class="button" id="saveEtat" type="submit">Enregistrer l’état</button></form><p id="etatMessage" role="status"></p><form id="loanForm" hidden><h3>Demander l’emprunt</h3><div class="control"><label for="loanStart">Date de début</label><input id="loanStart" type="date" required></div><div class="control"><label for="loanEnd">Date de fin</label><input id="loanEnd" type="date" required></div><button class="button" id="submitLoan" type="submit">Envoyer la demande</button></form><p id="loanMessage" role="status"></p><button class="button" id="closeDialog">Fermer</button></dialog>
 <dialog class="dialog" id="addDialog"><h2>Proposer un outil</h2>
 <form id="addForm">
 <div class="control"><label for="toolName">Nom (2 à 60 caractères)</label><input id="toolName" name="name" required minlength="2" maxlength="60"></div>
@@ -50,7 +50,7 @@ $('search').addEventListener('input',render);$('category').addEventListener('cha
 
 let currentDetail=null;
 async function loadDetail(id){
- currentDetail=null;$('editEtatForm').hidden=true;$('etatMessage').textContent='';
+ currentDetail=null;$('loanForm').hidden=true;$('loanMessage').textContent='';$('editEtatForm').hidden=true;$('etatMessage').textContent='';
  $('detailName').textContent='Chargement…';$('detailText').textContent='';$('details').showModal();
  try{
   const response=await fetch(`${API_URL}/api/tools/${id}`);
@@ -79,6 +79,7 @@ async function loadTools(){
 }
 $('refresh').addEventListener('click',loadTools);
 function updateEtatEditor(){
+ updateLoanForm();
  const own=currentDetail&&Number($('profile').value)===currentDetail.ownerId;
  $('editEtatForm').hidden=!own;
  if(currentDetail)$('editEtat').value=currentDetail.etat||'';
@@ -94,6 +95,26 @@ $('editEtatForm').addEventListener('submit',async(event)=>{
   $('details').close();await loadTools();await loadDetail(id);$('etatMessage').textContent='État enregistré.';
  }catch(error){$('etatMessage').textContent=error.message}finally{button.disabled=false}
 });
+function updateLoanForm(){
+ const selected=Number($('profile').value);
+ const allowed=currentDetail&&selected&&selected!==currentDetail.ownerId&&currentDetail.status==='available';
+ $('loanForm').hidden=!allowed;
+ const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date());
+ $('loanStart').min=today;$('loanEnd').min=$('loanStart').value||today;
+ $('loanMessage').textContent=!currentDetail?'':(!selected?'Choisissez votre profil pour demander un emprunt.':selected===currentDetail.ownerId?'Vous ne pouvez pas emprunter votre propre outil.':currentDetail.status!=='available'?'Cet outil n’est pas disponible.':'');
+}
+$('loanStart').addEventListener('change',()=>{$('loanEnd').min=$('loanStart').value||$('loanStart').min});
+$('loanForm').addEventListener('submit',async(event)=>{
+ event.preventDefault();if(!currentDetail)return;
+ const button=$('submitLoan');button.disabled=true;
+ try{
+  const response=await fetch(`${API_URL}/api/tools/${currentDetail.id}/loans`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify({startDate:$('loanStart').value,endDate:$('loanEnd').value})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Demande impossible');
+  $('loanMessage').textContent=`Demande n°${data.id} envoyée : en attente du propriétaire.`;$('loanForm').reset();updateLoanDates();
+ }catch(error){$('loanMessage').textContent=error.message}finally{button.disabled=false}
+});
+function updateLoanDates(){ $('loanEnd').min=$('loanStart').min }
 async function loadUsers(){
  try{
   const response=await fetch(`${API_URL}/api/users`);

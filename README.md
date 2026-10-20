@@ -125,3 +125,16 @@ l’état dans la popup et cliquer sur « Enregistrer l’état ».
 sauvegarde en base. Seul le propriétaire peut modifier (403 sinon),
 identifiant inconnu : 404, champ invalide : 400 ; maximum 300 caractères.
 Le champ peut être vidé (`null`) sans modifier la disponibilité.
+
+## US-04 : demander un emprunt
+
+Dans la fiche d'un outil disponible, choisir un profil différent du propriétaire,
+puis les dates de début et de fin et cliquer sur « Envoyer la demande ».
+`POST /api/tools/{id}/loans` avec `X-User-Id` et
+`{"startDate":"2026-12-01","endDate":"2026-12-03"}` crée une location `pending` (201).
+Les dates passées (jour courant en Europe/Paris), une fin antérieure au début,
+un outil non disponible et son propre outil sont refusés en 400.
+Une journée unique est autorisée. Plusieurs demandes pending peuvent coexister ;
+la demande ne change pas la disponibilité. Outil inconnu : 404.
+Si le schéma a été importé directement sous MySQL, activer la génération des identifiants
+avec `API/migrations/003_location_auto_increment.mysql.sql`.

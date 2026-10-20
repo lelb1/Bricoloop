@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
@@ -11,8 +13,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.database import ToolRow, UserRow, make_engine
-from app.models import Tool, ToolCreate, ToolDetail, ToolEtatUpdate, User
+from app.database import LocationRow, ToolRow, UserRow, make_engine
+from app.models import Loan, LoanCreate, Tool, ToolCreate, ToolDetail, ToolEtatUpdate, User
 
 
 def create_app(*, engine: Engine | None = None) -> FastAPI:
@@ -40,9 +42,10 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request, exc):
-        if (request.method == "POST" and request.url.path == "/api/tools") or (
-            request.method == "PATCH" and request.url.path.startswith("/api/tools/")
-        ):
+        if (
+            request.method == "POST"
+            and (request.url.path == "/api/tools" or request.url.path.endswith("/loans"))
+        ) or (request.method == "PATCH" and request.url.path.startswith("/api/tools/")):
             errors = [
                 {"field": ".".join(map(str, error["loc"][1:])) or "body", "message": error["msg"]}
                 for error in exc.errors()
@@ -89,6 +92,34 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.commit()
         session.refresh(tool)
         return tool
+
+    @app.post("/api/tools/{tool_id}/loans", response_model=Loan, status_code=201)
+    def request_loan(
+        tool_id: int,
+        payload: LoanCreate,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        if session.get(UserRow, user_id) is None:
+            raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
+        tool = session.get(ToolRow, tool_id)
+        if tool is None:
+            raise HTTPException(status_code=404, detail="Outil introuvable")
+        if tool.ownerId == user_id:
+            raise HTTPException(status_code=400, detail="toolId : impossible d’emprunter son outil")
+        if payload.endDate < payload.startDate:
+            raise HTTPException(status_code=400, detail="endDate : antérieure à startDate")
+        if payload.startDate < datetime.now(ZoneInfo("Europe/Paris")).date():
+            raise HTTPException(status_code=400, detail="startDate : date passée interdite")
+        if tool.status != "available":
+            raise HTTPException(status_code=400, detail="toolId : outil non disponible")
+        loan = LocationRow(
+            **payload.model_dump(), toolId=tool_id, borrowerId=user_id, status="pending"
+        )
+        session.add(loan)
+        session.commit()
+        session.refresh(loan)
+        return loan
 
     @app.get("/api/users", response_model=list[User])
     def list_users(session: DbSession):
