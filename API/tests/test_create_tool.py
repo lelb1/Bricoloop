@@ -125,3 +125,40 @@ def test_invalid_json(make_app):
             content="{",
         )
         assert response.status_code == 400
+
+
+@pytest.mark.parametrize(
+    "category", ["Perçage", "Jardinage", "Peinture", "Nettoyage", "Mesure", "Autre"]
+)
+def test_all_allowed_categories(make_app, category):
+    with TestClient(make_app()) as client:
+        response = client.post(
+            "/api/tools",
+            headers={"X-User-Id": "1"},
+            json={"name": "Outil", "category": category},
+        )
+        assert response.status_code == 201
+        assert response.json()["category"] == category
+        assert response.json()["description"] is None
+
+
+@pytest.mark.parametrize("length,status", [(60, 201), (61, 400)])
+def test_accented_name_length_counts_characters(make_app, length, status):
+    with TestClient(make_app()) as client:
+        response = client.post(
+            "/api/tools",
+            headers={"X-User-Id": "1"},
+            json={"name": "é" * length, "category": "Autre"},
+        )
+        assert response.status_code == status
+
+
+@pytest.mark.parametrize("length,status", [(300, 201), (301, 400)])
+def test_accented_description_length_counts_characters(make_app, length, status):
+    with TestClient(make_app()) as client:
+        response = client.post(
+            "/api/tools",
+            headers={"X-User-Id": "1"},
+            json={"name": "Outil", "category": "Autre", "description": "é" * length},
+        )
+        assert response.status_code == status
