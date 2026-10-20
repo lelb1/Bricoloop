@@ -67,3 +67,11 @@ Les tables créées par `python -m app.init_db` génèrent automatiquement les i
 Si vous avez importé `bdd/bricoloop.sql` directement sous MySQL/MariaDB, appliquez
 `API/migrations/001_outil_auto_increment.mysql.sql` pour activer cette génération.
 Cette migration conserve les données.
+
+## US-03 : détail d'un outil — identifiant inconnu
+
+`GET /api/tools/{id}` renvoie `404` si aucun outil ne possède cet identifiant,
+y compris un identifiant absent entre deux identifiants existants.
+Corps de la réponse : `{"detail":"Outil introuvable"}`.
+Un identifiant non entier reste une erreur de format `422`.
+La réponse `404` est documentée dans Swagger (`/docs`).

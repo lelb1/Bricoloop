@@ -70,7 +70,16 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             select(ToolRow).order_by(ToolRow.status != "available", ToolRow.id)
         ).all()
 
-    @app.get("/api/tools/{tool_id}", response_model=ToolDetail)
+    @app.get(
+        "/api/tools/{tool_id}",
+        response_model=ToolDetail,
+        responses={
+            404: {
+                "description": "Aucun outil ne correspond à cet identifiant",
+                "content": {"application/json": {"example": {"detail": "Outil introuvable"}}},
+            }
+        },
+    )
     def get_tool(tool_id: int, session: DbSession):
         tool = session.scalar(
             select(ToolRow).options(joinedload(ToolRow.owner)).where(ToolRow.id == tool_id)

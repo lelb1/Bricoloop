@@ -37,3 +37,15 @@ def test_nullable_description(make_app):
     response = TestClient(make_app()).get("/api/tools/7")
     assert response.status_code == 200
     assert response.json()["description"] is None
+
+
+def test_unknown_id_between_existing_tools(make_app):
+    from app.models import Tool
+
+    tools = [Tool(id=i, ownerId=1, name=f"Outil {i}", category="Autre") for i in (1, 3)]
+    with TestClient(make_app(tools=tools)) as client:
+        assert client.get("/api/tools/1").status_code == 200
+        response = client.get("/api/tools/2")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "Outil introuvable"}
+        assert client.get("/api/tools/3").status_code == 200
