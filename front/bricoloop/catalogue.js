@@ -20,7 +20,7 @@ function render(){
  }
 }
 function fillCategories(){const previous=$('category').value;$('category').replaceChildren(new Option('Toutes les catégories',''));for(const c of ['Perçage','Jardinage','Peinture','Nettoyage','Mesure','Autre'])$('category').add(new Option(c,c));$('category').value=previous}
-$('search').addEventListener('input',render);$('category').addEventListener('change',render);$('closeDialog').addEventListener('click',()=>$('details').close());
+$('search').addEventListener('input',render);$('category').addEventListener('change',loadTools);$('closeDialog').addEventListener('click',()=>$('details').close());
 
 let currentDetail=null;
 async function loadDetail(id){
@@ -36,20 +36,24 @@ async function loadDetail(id){
   $('detailText').textContent=`Catégorie : ${tool.category}\nStatut : ${statusNames[tool.status]||tool.status}\nÉtat : ${tool.etat||'Non renseigné'}\nDescription : ${tool.description||'Aucune description'}\nPropriétaire : ${tool.owner.firstName}\nQuartier : ${tool.owner.district}`;
  }catch(error){$('detailName').textContent='Fiche indisponible';$('detailText').textContent=error.message}
 }
+let catalogueRequest=0;
 async function loadTools(){
+ const request=++catalogueRequest;
  const button=$('refresh');button.disabled=true;button.textContent='Connexion…';
  $('source').textContent='Chargement…';
  try{
-  const response=await fetch(`${API_URL}/api/tools`,{headers:{Accept:'application/json'}});
+  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);
+  const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{headers:{Accept:'application/json'}});
   if(!response.ok)throw new Error('HTTP '+response.status);
-  const data=await response.json();
+  const data=await response.json();if(request!==catalogueRequest)return;
   if(!Array.isArray(data))throw new Error('La réponse n’est pas une liste JSON');
   tools=data;$('source').textContent='Données de la base via l’API';$('notice').hidden=true;render();
  }catch(error){
+  if(request!==catalogueRequest)return;
   tools=[];$('catalogue').replaceChildren();$('count').textContent='Catalogue indisponible';
   $('source').textContent='Connexion impossible';$('notice').hidden=false;
   $('notice').textContent=`Impossible de charger les outils (${error.message}). Vérifiez que l’API est lancée sur le port 8000, puis réessayez.`;
- }finally{button.disabled=false;button.textContent='↻ Actualiser'}
+ }finally{if(request===catalogueRequest){button.disabled=false;button.textContent='↻ Actualiser'}}
 }
 $('refresh').addEventListener('click',loadTools);
 function updateEtatEditor(){
@@ -152,7 +156,8 @@ $('addForm').addEventListener('submit',async(event)=>{
  event.preventDefault();const button=$('submitAdd');button.disabled=true;$('addError').textContent='';
  try{
   const payload={name:$('toolName').value,category:$('toolCategory').value,description:$('toolDescription').value||null,etat:$('toolEtat').value||null};
-  const response=await fetch(`${API_URL}/api/tools`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify(payload)});
+  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);
+  const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify(payload)});
   const data=await response.json();
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Ajout impossible');
   $('addDialog').close();$('saveNotice').textContent=`${data.name} a été ajouté et est disponible.`;

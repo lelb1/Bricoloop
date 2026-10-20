@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, get_args
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import LocationRow, ToolRow, UserRow, make_engine
 from app.models import (
     BorrowedLoan,
+    Category,
     Loan,
     LoanCreate,
     LoanDecision,
@@ -259,10 +260,13 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         return session.scalars(select(UserRow).order_by(UserRow.id)).all()
 
     @app.get("/api/tools", response_model=list[Tool])
-    def list_tools(session: DbSession):
-        return session.scalars(
-            select(ToolRow).order_by(ToolRow.status != "available", ToolRow.id)
-        ).all()
+    def list_tools(session: DbSession, category: str | None = None):
+        query = select(ToolRow)
+        if category is not None:
+            if category not in get_args(Category):
+                raise HTTPException(status_code=400, detail="category : catégorie inconnue")
+            query = query.where(ToolRow.category == category)
+        return session.scalars(query.order_by(ToolRow.status != "available", ToolRow.id)).all()
 
     @app.get(
         "/api/tools/{tool_id}",

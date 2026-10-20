@@ -190,3 +190,8 @@ Un seul serveur suffit ; le port 5500 reste utilisable. Le parcours est : choisi
 un profil → catalogue → fiche → dates → demande, avec erreurs API affichées en clair.
 Le JavaScript du site est dans `front/bricoloop/catalogue.js`.
 Tests du front : `cd front/bricoloop && npm install && npm run check`.
+
+## US-10 : filtre catégorie
+
+`GET /api/tools?category=Jardinage` filtre en base et conserve les disponibles en premier.
+Catégorie inconnue : 400. Le sélecteur du site appelle ce filtre API.
