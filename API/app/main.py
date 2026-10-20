@@ -14,7 +14,17 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import LocationRow, ToolRow, UserRow, make_engine
-from app.models import Loan, LoanCreate, Tool, ToolCreate, ToolDetail, ToolEtatUpdate, User
+from app.models import (
+    Loan,
+    LoanCreate,
+    LoanDecision,
+    ReceivedLoan,
+    Tool,
+    ToolCreate,
+    ToolDetail,
+    ToolEtatUpdate,
+    User,
+)
 
 
 def create_app(*, engine: Engine | None = None) -> FastAPI:
@@ -45,7 +55,10 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         if (
             request.method == "POST"
             and (request.url.path == "/api/tools" or request.url.path.endswith("/loans"))
-        ) or (request.method == "PATCH" and request.url.path.startswith("/api/tools/")):
+        ) or (
+            request.method == "PATCH"
+            and request.url.path.startswith(("/api/tools/", "/api/loans/"))
+        ):
             errors = [
                 {"field": ".".join(map(str, error["loc"][1:])) or "body", "message": error["msg"]}
                 for error in exc.errors()
@@ -117,6 +130,54 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             **payload.model_dump(), toolId=tool_id, borrowerId=user_id, status="pending"
         )
         session.add(loan)
+        session.commit()
+        session.refresh(loan)
+        return loan
+
+    @app.get("/api/loans/received", response_model=list[ReceivedLoan])
+    def received_loans(
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        if session.get(UserRow, user_id) is None:
+            raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
+        rows = session.execute(
+            select(LocationRow, ToolRow.name, UserRow)
+            .join(ToolRow, LocationRow.toolId == ToolRow.id)
+            .join(UserRow, LocationRow.borrowerId == UserRow.id)
+            .where(ToolRow.ownerId == user_id)
+            .order_by(LocationRow.id.desc())
+        ).all()
+        return [
+            ReceivedLoan(
+                **Loan.model_validate(loan).model_dump(),
+                toolName=name,
+                borrower=User.model_validate(borrower),
+            )
+            for loan, name, borrower in rows
+        ]
+
+    @app.patch("/api/loans/{loan_id}", response_model=Loan)
+    def decide_loan(
+        loan_id: int,
+        payload: LoanDecision,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        # Verrouille la demande pour éviter deux décisions concurrentes.
+        loan = session.scalar(
+            select(LocationRow).where(LocationRow.id == loan_id).with_for_update()
+        )
+        if loan is None:
+            raise HTTPException(status_code=404, detail="Demande introuvable")
+        tool = session.scalar(select(ToolRow).where(ToolRow.id == loan.toolId).with_for_update())
+        if tool.ownerId != user_id:
+            raise HTTPException(status_code=403, detail="Seul le propriétaire peut répondre")
+        if loan.status != "pending":
+            raise HTTPException(status_code=409, detail="La demande n’est plus en attente")
+        loan.status = payload.status
+        if payload.status == "accepted":
+            tool.status = "lent"
         session.commit()
         session.refresh(loan)
         return loan

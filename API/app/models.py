@@ -77,3 +77,13 @@ class Loan(BaseModel):
     startDate: date
     endDate: date
     status: Literal["pending", "accepted", "refused", "returned"]
+
+
+class LoanDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["accepted", "refused"]
+
+
+class ReceivedLoan(Loan):
+    toolName: str
+    borrower: User

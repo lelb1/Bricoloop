@@ -14,6 +14,7 @@
 <section class="summary" aria-label="Profil et ajout"><div class="control"><label for="profile">Mon profil</label><select id="profile" disabled><option value="">Chargement des profils…</option></select></div><button class="button" id="openAdd" disabled>+ Proposer un outil</button></section><p id="saveNotice" role="status"></p>
 <div class="summary"><div><h2>Les outils disponibles</h2><p id="count" aria-live="polite"></p></div><span class="source" id="source">Connexion à l’API…</span></div>
 <div id="notice" class="notice" role="status">Chargement des outils depuis la base de données…</div>
+<section aria-labelledby="receivedTitle"><h2 id="receivedTitle">Demandes reçues pour mes outils</h2><button class="smallbtn" id="refreshReceived" type="button">Actualiser les demandes</button><p id="receivedMessage" role="status">Choisissez votre profil.</p><div id="receivedLoans"></div></section>
 <div class="grid" id="catalogue" aria-live="polite"></div><footer class="footer">BricoLoop · Projet EPSI B3 · US-01 — Catalogue des outils</footer></main>
 <dialog class="dialog" id="details"><h2 id="detailName"></h2><p id="detailText"></p><form id="editEtatForm" hidden><div class="control"><label for="editEtat">Modifier l’état physique</label><textarea id="editEtat" maxlength="300" rows="3"></textarea></div><button class="button" id="saveEtat" type="submit">Enregistrer l’état</button></form><p id="etatMessage" role="status"></p><form id="loanForm" hidden><h3>Demander l’emprunt</h3><div class="control"><label for="loanStart">Date de début</label><input id="loanStart" type="date" required></div><div class="control"><label for="loanEnd">Date de fin</label><input id="loanEnd" type="date" required></div><button class="button" id="submitLoan" type="submit">Envoyer la demande</button></form><p id="loanMessage" role="status"></p><button class="button" id="closeDialog">Fermer</button></dialog>
 <dialog class="dialog" id="addDialog"><h2>Proposer un outil</h2>
@@ -115,6 +116,38 @@ $('loanForm').addEventListener('submit',async(event)=>{
  }catch(error){$('loanMessage').textContent=error.message}finally{button.disabled=false}
 });
 function updateLoanDates(){ $('loanEnd').min=$('loanStart').min }
+const loanStatusNames={pending:'En attente',accepted:'Acceptée',refused:'Refusée',returned:'Rendue'};
+async function loadReceived(){
+ const user=$('profile').value;const root=$('receivedLoans');root.replaceChildren();
+ if(!user){$('receivedMessage').textContent='Choisissez votre profil.';return}
+ $('receivedMessage').textContent='Chargement des demandes…';
+ try{
+  const response=await fetch(`${API_URL}/api/loans/received`,{headers:{'X-User-Id':user}});
+  const data=await response.json();
+  if(user!==$('profile').value)return;
+  if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Chargement impossible');
+  $('receivedMessage').textContent=data.length?'':'Aucune demande reçue.';
+  for(const loan of data){
+   const card=el('article','tool');const body=el('div','details');
+   body.append(el('h3','',loan.toolName),el('p','',`${loan.borrower.firstName} — ${loan.borrower.district}`),el('p','',`Du ${loan.startDate} au ${loan.endDate}`),el('p','',loanStatusNames[loan.status]||loan.status));
+   if(loan.status==='pending')for(const [status,label] of [['accepted','Accepter'],['refused','Refuser']]){
+    const button=el('button','smallbtn',label);button.type='button';
+    button.addEventListener('click',async()=>{
+     const buttons=body.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);
+     try{
+      const result=await fetch(`${API_URL}/api/loans/${loan.id}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Id':user},body:JSON.stringify({status})});
+      const decision=await result.json();
+      if(!result.ok)throw new Error(Array.isArray(decision.detail)?decision.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):decision.detail||'Décision impossible');
+      await Promise.all([loadReceived(),loadTools()]);
+      if(currentDetail&&currentDetail.id===loan.toolId&&$('details').open){$('details').close();await loadDetail(loan.toolId)}
+     }catch(error){$('receivedMessage').textContent=error.message;buttons.forEach(b=>b.disabled=false)}
+    });body.append(button);
+   }
+   card.append(body);root.append(card);
+  }
+ }catch(error){if(user===$('profile').value)$('receivedMessage').textContent=error.message}
+}
+$('refreshReceived').addEventListener('click',loadReceived);
 async function loadUsers(){
  try{
   const response=await fetch(`${API_URL}/api/users`);
@@ -125,7 +158,7 @@ async function loadUsers(){
   $('profile').disabled=false;
  }catch(error){$('saveNotice').textContent=error.message}
 }
-$('profile').addEventListener('change',()=>{$('openAdd').disabled=!$('profile').value;updateEtatEditor()});
+$('profile').addEventListener('change',()=>{$('openAdd').disabled=!$('profile').value;updateEtatEditor();loadReceived()});
 $('openAdd').addEventListener('click',()=>{$('addForm').reset();$('addError').textContent='';$('addDialog').showModal()});
 $('cancelAdd').addEventListener('click',()=>$('addDialog').close());
 $('addForm').addEventListener('submit',async(event)=>{

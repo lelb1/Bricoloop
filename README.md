@@ -138,3 +138,19 @@ Une journée unique est autorisée. Plusieurs demandes pending peuvent coexister
 la demande ne change pas la disponibilité. Outil inconnu : 404.
 Si le schéma a été importé directement sous MySQL, activer la génération des identifiants
 avec `API/migrations/003_location_auto_increment.mysql.sql`.
+
+## US-05 : accepter ou refuser une demande
+
+Choisir son profil puis consulter « Demandes reçues pour mes outils ».
+Les boutons Accepter et Refuser sont affichés pour les demandes en attente.
+`GET /api/loans/received` avec `X-User-Id` liste uniquement les demandes reçues par
+le propriétaire courant, avec l’outil, l’emprunteur, les dates et le statut.
+`PATCH /api/loans/{id}` avec `{"status":"accepted"}` ou `{"status":"refused"}` :
+- seul le propriétaire peut répondre (403 sinon) ;
+- accepter passe la location à `accepted` et l’outil à `lent`, dans la même transaction ;
+- refuser passe la location à `refused` sans modifier l’outil ;
+- toute nouvelle réponse à une demande déjà traitée renvoie 409 ;
+- une demande inconnue renvoie 404, une décision invalide 400.
+
+Les lignes sont verrouillées pendant la décision sur MySQL pour éviter deux
+réponses concurrentes à la même demande. Le contrôle des chevauchements reste US-06.
