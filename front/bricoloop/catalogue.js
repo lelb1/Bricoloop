@@ -4,6 +4,16 @@ const API_URL=location.port==='5500'?'http://localhost:8000':location.origin;
 const statusNames={available:'Disponible',lent:'Prêté',unavailable:'Indisponible'};
 const iconByCat={'Perçage':'🛠️','Jardinage':'🌿','Peinture':'🖌️','Nettoyage':'🧽','Mesure':'📏','Autre':'🧰'};
 const $=id=>document.getElementById(id);
+async function readResponse(response){
+ let data;
+ try{data=await response.json()}catch{throw new Error(`Réponse API invalide (HTTP ${response.status})`)}
+ if(!response.ok){
+  const detail=data.detail;
+  const message=Array.isArray(detail)?detail.map(error=>`${error.field||(error.loc||[]).slice(1).join('.')||'Requête'} : ${error.message||error.msg||'Valeur invalide'}`).join(' · '):typeof detail==='string'?detail:`Erreur HTTP ${response.status}`;
+  throw new Error(message);
+ }
+ return data;
+}
 let tools=[];
 function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x}
 function render(){
@@ -28,8 +38,7 @@ async function loadDetail(id){
  $('detailName').textContent='Chargement…';$('detailText').textContent='';if(!$('details').open)$('details').showModal();
  try{
   const response=await fetch(`${API_URL}/api/tools/${id}`);
-  if(!response.ok)throw new Error(response.status===404?'Outil introuvable':`Erreur HTTP ${response.status}`);
-  const tool=await response.json();
+  const tool=await readResponse(response);
   if(!$('details').open)return;
   currentDetail=tool;updateEtatEditor();
   $('detailName').textContent=tool.name;
@@ -44,8 +53,7 @@ async function loadTools(){
  try{
   const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);if($('search').value.trim())params.set('q',$('search').value.trim());
   const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{headers:{Accept:'application/json'}});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  const data=await response.json();if(request!==catalogueRequest)return;
+  const data=await readResponse(response);if(request!==catalogueRequest)return;
   if(!Array.isArray(data))throw new Error('La réponse n’est pas une liste JSON');
   tools=data;$('source').textContent='Données de la base via l’API';$('notice').hidden=true;render();
  }catch(error){
@@ -68,7 +76,7 @@ $('editEtatForm').addEventListener('submit',async(event)=>{
  const id=currentDetail.id;const button=$('saveEtat');button.disabled=true;
  try{
   const response=await fetch(`${API_URL}/api/tools/${id}/etat`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify({etat:$('editEtat').value.trim()||null})});
-  const data=await response.json();
+  const data=await readResponse(response);
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Modification impossible');
   $('details').close();await loadTools();await loadDetail(id);$('etatMessage').textContent='État enregistré.';
  }catch(error){$('etatMessage').textContent=error.message}finally{button.disabled=false}
@@ -87,7 +95,7 @@ $('loanForm').addEventListener('submit',async(event)=>{
  const button=$('submitLoan');button.disabled=true;
  try{
   const response=await fetch(`${API_URL}/api/tools/${currentDetail.id}/loans`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify({startDate:$('loanStart').value,endDate:$('loanEnd').value})});
-  const data=await response.json();
+  const data=await readResponse(response);
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Demande impossible');
   $('loanMessage').textContent=`Demande n°${data.id} envoyée : en attente du propriétaire.`;$('loanForm').reset();updateLoanDates();await loadMine();
  }catch(error){$('loanMessage').textContent=error.message}finally{button.disabled=false}
@@ -100,7 +108,7 @@ async function loadReceived(){
  $('receivedMessage').textContent='Chargement des demandes…';
  try{
   const response=await fetch(`${API_URL}/api/loans/received`,{headers:{'X-User-Id':user}});
-  const data=await response.json();
+  const data=await readResponse(response);
   if(user!==$('profile').value)return;
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Chargement impossible');
   $('receivedMessage').textContent=data.length?'':'Aucune demande reçue.';
@@ -114,7 +122,7 @@ async function loadReceived(){
      const buttons=body.querySelectorAll('button');buttons.forEach(b=>b.disabled=true);
      try{
       const result=await fetch(`${API_URL}/api/loans/${loan.id}${status==='returned'?'/return':''}`,{method:'PATCH',headers:{'Content-Type':'application/json','X-User-Id':user},body:status==='returned'?undefined:JSON.stringify({status})});
-      const decision=await result.json();
+      const decision=await readResponse(result);
       if(!result.ok)throw new Error(Array.isArray(decision.detail)?decision.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):decision.detail||'Décision impossible');
       await Promise.all([loadReceived(),loadTools(),loadOwned(),loadMine()]);
       if(currentDetail&&currentDetail.id===loan.toolId&&$('details').open){$('details').close();await loadDetail(loan.toolId)}
@@ -126,7 +134,7 @@ async function loadReceived(){
     else{
      const form=el('form');const label=el('label','',`Note pour ${loan.borrower.firstName} `);const select=el('select');select.required=true;select.setAttribute('aria-label',`Note de l’emprunteur pour le prêt ${loan.id}`);select.append(new Option('Choisir une note',''));for(let i=1;i<=5;i++)select.append(new Option(`${i}/5`,i));label.append(select);const button=el('button','smallbtn','Noter l’emprunteur');button.type='submit';form.append(label,button);
      form.addEventListener('submit',async(event)=>{event.preventDefault();button.disabled=true;try{
-      const response=await fetch(`${API_URL}/api/loans/${loan.id}/rating`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':user},body:JSON.stringify({score:Number(select.value)})});const data=await response.json();if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Notation impossible');await loadReceived();
+      const response=await fetch(`${API_URL}/api/loans/${loan.id}/rating`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':user},body:JSON.stringify({score:Number(select.value)})});const data=await readResponse(response);if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Notation impossible');await loadReceived();
      }catch(error){$('receivedMessage').textContent=error.message;button.disabled=false}});body.append(form);
     }
    }
@@ -141,8 +149,7 @@ async function loadMine(){
  $('mineMessage').textContent='Chargement…';
  try{
   const response=await fetch(`${API_URL}/api/loans/mine`,{headers:{'X-User-Id':user}});
-  const data=await response.json();if(user!==$('profile').value)return;
-  if(!response.ok)throw new Error('Impossible de charger mes emprunts');
+  const data=await readResponse(response);if(user!==$('profile').value)return;
   $('mineMessage').textContent=data.length?'':'Aucun emprunt pour le moment.';
   for(const loan of data){const card=el('article','tool');const body=el('div','details');body.append(el('h3','',loan.toolName),el('p','',`Du ${loan.startDate} au ${loan.endDate}`),el('p','',loanStatusNames[loan.status]||loan.status));card.append(body);root.append(card)}
  }catch(error){if(user===$('profile').value)$('mineMessage').textContent=error.message}
@@ -154,8 +161,7 @@ async function loadOwned(){
  $('ownedMessage').textContent='Chargement…';
  try{
   const response=await fetch(`${API_URL}/api/tools/mine`,{headers:{'X-User-Id':user}});
-  const data=await response.json();if(user!==$('profile').value)return;
-  if(!response.ok)throw new Error('Impossible de charger mes outils');
+  const data=await readResponse(response);if(user!==$('profile').value)return;
   $('ownedMessage').textContent=data.length?'':'Vous ne proposez aucun outil.';
   for(const tool of data){const card=el('article','tool');const body=el('div','details');body.append(el('h3','',tool.name),el('p','',statusNames[tool.status]||tool.status),el('p','',`${tool.pendingRequests} demande(s) en attente`));const button=el('button','smallbtn','Ouvrir la fiche');button.type='button';button.addEventListener('click',()=>loadDetail(tool.id));body.append(button);card.append(body);root.append(card)}
  }catch(error){if(user===$('profile').value)$('ownedMessage').textContent=error.message}
@@ -166,8 +172,7 @@ async function loadHistory(){
  $('historyMessage').textContent='Chargement…';
  try{
   const response=await fetch(`${API_URL}/api/tools/${tool.id}/history`,{headers:{'X-User-Id':user}});
-  const data=await response.json();if(user!==$('profile').value||!currentDetail||currentDetail.id!==tool.id)return;
-  if(!response.ok)throw new Error('Impossible de charger l’historique');
+  const data=await readResponse(response);if(user!==$('profile').value||!currentDetail||currentDetail.id!==tool.id)return;
   $('historyMessage').textContent=data.length?'':'Aucun prêt accepté ou rendu pour cet outil.';
   for(const loan of data){const item=el('article');item.append(el('p','',`${loan.borrower.firstName} — du ${loan.startDate} au ${loan.endDate} — ${loanStatusNames[loan.status]||loan.status}`));if(loan.rating!==null&&loan.rating!==undefined)item.append(el('p','',`Note : ${loan.rating}/5`));root.append(item)}
  }catch(error){if(user===$('profile').value&&currentDetail?.id===tool.id)$('historyMessage').textContent=error.message}
@@ -175,8 +180,7 @@ async function loadHistory(){
 async function loadUsers(){
  try{
   const response=await fetch(`${API_URL}/api/users`);
-  if(!response.ok)throw new Error('Impossible de charger les profils');
-  const users=await response.json();
+  const users=await readResponse(response);
   $('profile').replaceChildren(new Option('Choisir mon profil',''));
   for(const user of users)$('profile').add(new Option(`${user.firstName} — ${user.district}`,user.id));
   $('profile').disabled=false;
@@ -191,7 +195,7 @@ $('addForm').addEventListener('submit',async(event)=>{
   const payload={name:$('toolName').value,category:$('toolCategory').value,description:$('toolDescription').value||null,etat:$('toolEtat').value||null};
   const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);if($('search').value.trim())params.set('q',$('search').value.trim());
   const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify(payload)});
-  const data=await response.json();
+  const data=await readResponse(response);
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Ajout impossible');
   $('addDialog').close();$('saveNotice').textContent=`${data.name} a été ajouté et est disponible.`;
   $('search').value='';$('category').value='';await Promise.all([loadTools(),loadOwned()]);

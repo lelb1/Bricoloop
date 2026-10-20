@@ -77,3 +77,8 @@ test('historique visible dans la fiche du propriétaire',async()=>{
  const p=await page(path=>path==='/api/tools/1/history'?{status:200,body:[{id:4,borrower:users[1],startDate:'2026-01-01',endDate:'2026-01-02',status:'returned',rating:4}]}:null);
  try{p.change('profile','1');await settle();p.w.document.querySelector('#catalogue button').click();await settle();assert.equal(p.w.document.getElementById('historyPanel').hidden,false);assert.match(p.w.document.getElementById('toolHistory').textContent,/Marc/);assert.match(p.w.document.getElementById('toolHistory').textContent,/4\/5/);p.change('profile','2');await settle();assert.equal(p.w.document.getElementById('historyPanel').hidden,true)}finally{p.close()}
 });
+
+test('erreur 400 du catalogue conserve le message et le champ de l’API',async()=>{
+ const p=await page(path=>path==='/api/tools'?{status:400,body:{detail:[{field:'category',message:'Catégorie inconnue'}]}}:null);
+ try{const message=p.w.document.getElementById('notice').textContent;assert.match(message,/category/);assert.match(message,/Catégorie inconnue/)}finally{p.close()}
+});
