@@ -22,6 +22,7 @@ CREATE TABLE outil (
   description VARCHAR(300),
   status      VARCHAR(20)  NOT NULL DEFAULT 'available'
               CHECK (status IN ('available','lent','unavailable')),
+  etat  VARCHAR(300),
   FOREIGN KEY (ownerId) REFERENCES utilisateur(id)
 );
 
