@@ -98,11 +98,11 @@ $('editEtatForm').addEventListener('submit',async(event)=>{
 });
 function updateLoanForm(){
  const selected=Number($('profile').value);
- const allowed=currentDetail&&selected&&selected!==currentDetail.ownerId&&currentDetail.status==='available';
+ const allowed=currentDetail&&selected&&selected!==currentDetail.ownerId&&currentDetail.status!=='unavailable';
  $('loanForm').hidden=!allowed;
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris'}).format(new Date());
  $('loanStart').min=today;$('loanEnd').min=$('loanStart').value||today;
- $('loanMessage').textContent=!currentDetail?'':(!selected?'Choisissez votre profil pour demander un emprunt.':selected===currentDetail.ownerId?'Vous ne pouvez pas emprunter votre propre outil.':currentDetail.status!=='available'?'Cet outil n’est pas disponible.':'');
+ $('loanMessage').textContent=!currentDetail?'':(!selected?'Choisissez votre profil pour demander un emprunt.':selected===currentDetail.ownerId?'Vous ne pouvez pas emprunter votre propre outil.':currentDetail.status==='unavailable'?'Cet outil n’est pas disponible.':'');
 }
 $('loanStart').addEventListener('change',()=>{$('loanEnd').min=$('loanStart').value||$('loanStart').min});
 $('loanForm').addEventListener('submit',async(event)=>{

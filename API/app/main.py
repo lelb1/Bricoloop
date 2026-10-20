@@ -106,6 +106,19 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.refresh(tool)
         return tool
 
+    def accepted_loans(session: Session, tool_id: int):
+        # Lecture verrouillée : tient compte des acceptations qui viennent d’être validées.
+        return session.scalars(
+            select(LocationRow)
+            .where(LocationRow.toolId == tool_id, LocationRow.status == "accepted")
+            .order_by(LocationRow.id)
+            .with_for_update()
+        ).all()
+
+    def reject_overlap(loans, start, end):
+        if any(loan.startDate <= end and loan.endDate >= start for loan in loans):
+            raise HTTPException(status_code=409, detail="Les dates chevauchent un prêt accepté")
+
     @app.post("/api/tools/{tool_id}/loans", response_model=Loan, status_code=201)
     def request_loan(
         tool_id: int,
@@ -115,7 +128,7 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
     ):
         if session.get(UserRow, user_id) is None:
             raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
-        tool = session.get(ToolRow, tool_id)
+        tool = session.scalar(select(ToolRow).where(ToolRow.id == tool_id).with_for_update())
         if tool is None:
             raise HTTPException(status_code=404, detail="Outil introuvable")
         if tool.ownerId == user_id:
@@ -124,7 +137,10 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="endDate : antérieure à startDate")
         if payload.startDate < datetime.now(ZoneInfo("Europe/Paris")).date():
             raise HTTPException(status_code=400, detail="startDate : date passée interdite")
-        if tool.status != "available":
+        bookings = accepted_loans(session, tool_id)
+        reject_overlap(bookings, payload.startDate, payload.endDate)
+        # Un outil prêté peut être réservé pour une autre période.
+        if tool.status == "unavailable" or (tool.status == "lent" and not bookings):
             raise HTTPException(status_code=400, detail="toolId : outil non disponible")
         loan = LocationRow(
             **payload.model_dump(), toolId=tool_id, borrowerId=user_id, status="pending"
@@ -164,17 +180,20 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session: DbSession,
         user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
     ):
-        # Verrouille la demande pour éviter deux décisions concurrentes.
+        tool_id = session.scalar(select(LocationRow.toolId).where(LocationRow.id == loan_id))
+        if tool_id is None:
+            raise HTTPException(status_code=404, detail="Demande introuvable")
+        # Même ordre de verrouillage pour toutes les opérations : outil, puis locations.
+        tool = session.scalar(select(ToolRow).where(ToolRow.id == tool_id).with_for_update())
         loan = session.scalar(
             select(LocationRow).where(LocationRow.id == loan_id).with_for_update()
         )
-        if loan is None:
-            raise HTTPException(status_code=404, detail="Demande introuvable")
-        tool = session.scalar(select(ToolRow).where(ToolRow.id == loan.toolId).with_for_update())
         if tool.ownerId != user_id:
             raise HTTPException(status_code=403, detail="Seul le propriétaire peut répondre")
         if loan.status != "pending":
             raise HTTPException(status_code=409, detail="La demande n’est plus en attente")
+        if payload.status == "accepted":
+            reject_overlap(accepted_loans(session, tool.id), loan.startDate, loan.endDate)
         loan.status = payload.status
         if payload.status == "accepted":
             tool.status = "lent"

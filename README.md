@@ -153,4 +153,17 @@ le propriétaire courant, avec l’outil, l’emprunteur, les dates et le statut
 - une demande inconnue renvoie 404, une décision invalide 400.
 
 Les lignes sont verrouillées pendant la décision sur MySQL pour éviter deux
-réponses concurrentes à la même demande. Le contrôle des chevauchements reste US-06.
+réponses concurrentes à la même demande. Les chevauchements sont contrôlés par US-06.
+
+## US-06 : aucun prêt accepté ne se chevauche
+
+Les périodes incluent les deux dates : un prêt du 10 au 15 bloque les demandes
+qui touchent ces jours, mais autorise un début le 16.
+La création d'une demande et son acceptation vérifient les prêts `accepted` du même
+outil ; un chevauchement renvoie 409 sans modifier la demande ni l'outil.
+Les demandes `pending`, `refused`, `returned` ne bloquent pas les dates.
+Un outil `lent` avec un prêt accepté peut recevoir une demande sur une période libre ;
+un outil `unavailable` reste indisponible. Les dates passées restent interdites.
+Le front propose donc les dates pour les outils disponibles ou prêtés.
+Les opérations verrouillent d'abord l'outil puis les locations dans une transaction,
+pour empêcher deux acceptations concurrentes de prêts qui se chevauchent sous MySQL.
