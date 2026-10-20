@@ -1,12 +1,13 @@
 import os
+from datetime import date
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import ForeignKey, String, create_engine
+from sqlalchemy import CheckConstraint, Date, ForeignKey, String, create_engine
 from sqlalchemy.engine import URL, Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from app.data import seed_tools, seed_users
+from app.data import seed_locations, seed_tools, seed_users
 
 
 class Base(DeclarativeBase):
@@ -14,21 +15,44 @@ class Base(DeclarativeBase):
 
 
 class UserRow(Base):
-    __tablename__ = "users"
+    __tablename__ = "utilisateur"
     id: Mapped[int] = mapped_column(primary_key=True)
-    firstName: Mapped[str] = mapped_column(String(80))
-    district: Mapped[str] = mapped_column(String(120))
+    firstName: Mapped[str] = mapped_column(String(60))
+    district: Mapped[str] = mapped_column(String(60))
 
 
 class ToolRow(Base):
-    __tablename__ = "tools"
+    __tablename__ = "outil"
+    __table_args__ = (
+        CheckConstraint("LENGTH(name) BETWEEN 2 AND 60"),
+        CheckConstraint(
+            "category IN ('Perçage','Jardinage','Peinture','Nettoyage','Mesure','Autre')"
+        ),
+        CheckConstraint("status IN ('available','lent','unavailable')"),
+    )
     id: Mapped[int] = mapped_column(primary_key=True)
-    ownerId: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    ownerId: Mapped[int] = mapped_column(ForeignKey("utilisateur.id"), index=True)
     name: Mapped[str] = mapped_column(String(60))
-    category: Mapped[str] = mapped_column(String(30))
-    description: Mapped[str] = mapped_column(String(300), default="")
-    status: Mapped[str] = mapped_column(String(20), default="available", index=True)
+    category: Mapped[str] = mapped_column(String(20))
+    description: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), default="available", server_default="available", index=True
+    )
     owner: Mapped[UserRow] = relationship()
+
+
+class LocationRow(Base):
+    __tablename__ = "location"
+    __table_args__ = (
+        CheckConstraint("endDate >= startDate"),
+        CheckConstraint("status IN ('pending','accepted','refused','returned')"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    toolId: Mapped[int] = mapped_column(ForeignKey("outil.id"))
+    borrowerId: Mapped[int] = mapped_column(ForeignKey("utilisateur.id"))
+    startDate: Mapped[date] = mapped_column(Date)
+    endDate: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
 
 
 def database_url() -> URL:
@@ -61,6 +85,10 @@ def initialize(engine: Engine, *, demo: bool = True) -> None:
             return
         if session.scalar(select(ToolRow.id).limit(1)) is not None:
             return
+        if session.scalar(select(LocationRow.id).limit(1)) is not None:
+            return
         session.add_all(UserRow(**user.model_dump()) for user in seed_users())
         session.flush()
         session.add_all(ToolRow(**tool.model_dump()) for tool in seed_tools())
+        session.flush()
+        session.add_all(LocationRow(**location) for location in seed_locations())

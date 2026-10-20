@@ -8,11 +8,11 @@ def test_tool_detail_with_owner(make_app):
     assert response.json() == {
         "id": 1,
         "ownerId": 1,
-        "name": "Perceuse",
+        "name": "Perceuse Bosch",
         "category": "Perçage",
-        "description": "Perceuse avec forets",
-        "status": "lent",
-        "owner": {"id": 1, "firstName": "Bilal", "district": "Centre"},
+        "description": "Perceuse à percussion 750 W",
+        "status": "available",
+        "owner": {"id": 1, "firstName": "Rida", "district": "Centre"},
     }
 
 
@@ -31,3 +31,9 @@ def test_detail_in_empty_catalogue(make_app):
 def test_invalid_identifier(make_app):
     response = TestClient(make_app()).get("/api/tools/abc")
     assert response.status_code == 422
+
+
+def test_nullable_description(make_app):
+    response = TestClient(make_app()).get("/api/tools/7")
+    assert response.status_code == 200
+    assert response.json()["description"] is None

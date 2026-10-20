@@ -21,7 +21,7 @@ class Tool(BaseModel):
     ownerId: int
     name: str
     category: Category
-    description: str = ""
+    description: str | None = None
     status: ToolStatus = "available"
 
 

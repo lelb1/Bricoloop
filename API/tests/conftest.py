@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.database import ToolRow, initialize
+from app.database import LocationRow, ToolRow, initialize
 from app.main import create_app
 
 
@@ -19,6 +19,7 @@ def make_app():
         initialize(engine)
         if tools is not None:
             with Session(engine) as session, session.begin():
+                session.query(LocationRow).delete()
                 session.query(ToolRow).delete()
                 session.add_all(ToolRow(**tool.model_dump()) for tool in tools)
         return create_app(engine=engine)
