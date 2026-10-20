@@ -10,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
@@ -22,6 +22,7 @@ from app.models import (
     Loan,
     LoanCreate,
     LoanDecision,
+    OwnedTool,
     ReceivedLoan,
     Tool,
     ToolCreate,
@@ -254,6 +255,30 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.commit()
         session.refresh(loan)
         return loan
+
+    @app.get("/api/tools/mine", response_model=list[OwnedTool])
+    def my_tools(
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        if session.get(UserRow, user_id) is None:
+            raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
+        counts = (
+            select(LocationRow.toolId.label("tool_id"), func.count().label("pending"))
+            .where(LocationRow.status == "pending")
+            .group_by(LocationRow.toolId)
+            .subquery()
+        )
+        rows = session.execute(
+            select(ToolRow, func.coalesce(counts.c.pending, 0))
+            .outerjoin(counts, counts.c.tool_id == ToolRow.id)
+            .where(ToolRow.ownerId == user_id)
+            .order_by(ToolRow.id)
+        ).all()
+        return [
+            OwnedTool(**Tool.model_validate(tool).model_dump(), pendingRequests=count)
+            for tool, count in rows
+        ]
 
     @app.get("/api/users", response_model=list[User])
     def list_users(session: DbSession):

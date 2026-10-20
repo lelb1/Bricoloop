@@ -201,3 +201,9 @@ Catégorie inconnue : 400. Le sélecteur du site appelle ce filtre API.
 `GET /api/tools?q=bosch` recherche dans le nom et la description sans distinction
 de casse, y compris les accents en majuscules. Aucun résultat : `[]`.
 La recherche peut se combiner à `category`. Le champ du catalogue utilise cette API.
+
+## US-12 : mes outils et demandes reçues
+
+`GET /api/tools/mine` avec `X-User-Id` retourne mes outils avec `pendingRequests`,
+le nombre de demandes en attente. La section « Mes outils » affiche ces compteurs ;
+« Demandes reçues » permet de répondre. Les autres propriétaires sont exclus.

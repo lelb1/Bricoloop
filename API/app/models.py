@@ -91,3 +91,7 @@ class ReceivedLoan(Loan):
 
 class BorrowedLoan(Loan):
     toolName: str
+
+
+class OwnedTool(Tool):
+    pendingRequests: int
