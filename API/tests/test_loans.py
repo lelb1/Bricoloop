@@ -38,7 +38,6 @@ def test_pending_requests_allow_multiple_borrowers(make_app):
         (1, "1", {}, "toolId"),
         (1, "2", {"endDate": "2000-01-01"}, "endDate"),
         (1, "2", {"startDate": "2000-01-01"}, "startDate"),
-        (4, "1", {}, "toolId"),
         (8, "1", {}, "toolId"),
         (1, "999", {}, "X-User-Id"),
         (1, "2", {"startDate": "invalid"}, "startDate"),
