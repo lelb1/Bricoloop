@@ -19,3 +19,7 @@ class Tool(BaseModel):
     category: Category
     description: str = ""
     status: ToolStatus = "available"
+
+
+class ToolDetail(Tool):
+    owner: User

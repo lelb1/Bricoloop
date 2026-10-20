@@ -1,7 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.data import seed_tools, seed_users
-from app.models import Tool
+from app.models import Tool, ToolDetail
 
 
 def create_app(
@@ -15,6 +15,14 @@ def create_app(
     @app.get("/api/tools", response_model=list[Tool])
     def list_tools() -> list[Tool]:
         return sorted(app.state.tools, key=lambda tool: tool.status != "available")
+
+    @app.get("/api/tools/{tool_id}", response_model=ToolDetail)
+    def get_tool(tool_id: int) -> ToolDetail:
+        tool = next((tool for tool in app.state.tools if tool.id == tool_id), None)
+        if tool is None:
+            raise HTTPException(status_code=404, detail="Outil introuvable")
+        owner = next(user for user in app.state.users if user.id == tool.ownerId)
+        return ToolDetail(**tool.model_dump(), owner=owner)
 
     @app.get("/health")
     def health() -> dict[str, str]:
