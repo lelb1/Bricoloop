@@ -13,6 +13,9 @@ cd API
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+cp .env.example .env
+# Adapter les paramètres MySQL dans .env, puis :
+python -m app.init_db
 python -m uvicorn app.main:app --reload
 ```
 
@@ -43,8 +46,12 @@ Lien de la vidéo : à ajouter au rendu.
 - `GET /health` : vérification du démarrage.
 
 Les statuts sont `available`, `lent`, `unavailable`.
-4 voisins et 8 outils dans 6 catégories sont chargés en mémoire par application.
-Les données ne sont pas persistées ; aucun serveur de base de données n'est requis.
+Les données sont persistées dans MySQL (ou MariaDB), dans la base `bricoloop`.
+`python -m app.init_db` crée la base, les tables `users` et `tools`, et ajoute
+4 voisins et 8 outils dans 6 catégories uniquement si les deux tables sont vides.
+Relancer cette commande conserve les données existantes.
+Les changements futurs du schéma nécessiteront des migrations ; `create_all`
+ne modifie pas les colonnes des tables existantes.
 
 ```bash
 curl http://127.0.0.1:8000/api/tools
@@ -56,3 +63,22 @@ Ces stories sont implémentées et testées sur la branche `feature/US-01-03-api
 Leur statut Done reste soumis à la review de la PR et à la validation du PO.
 
 Référence des tests : https://fastapi.tiangolo.com/tutorial/testing/
+
+## Connexion MySQL
+
+Le serveur doit être lancé avant l'initialisation et le démarrage de l'API.
+Configuration dans `API/.env` (ignoré par Git), modèle dans `API/.env.example` :
+
+- `DB_HOST=127.0.0.1`
+- `DB_PORT=3306`
+- `DB_USER=root` pour le développement local
+- `DB_PASSWORD=` à renseigner selon votre installation
+- `DB_NAME=bricoloop`
+
+Le compte utilisé pour l'initialisation doit pouvoir créer la base et les tables.
+Les routes utilisent SQLAlchemy et PyMySQL. Le catalogue est trié en SQL ; le détail
+charge le propriétaire depuis la relation `tools.ownerId → users.id`.
+`GET /health` vérifie la connexion SQL ; une panne SQL renvoie `503`, sans identifiants.
+Les tests automatiques utilisent une base SQLite isolée, sans modifier MySQL.
+
+Documentation du pilote : https://docs.sqlalchemy.org/en/20/dialects/mysql.html#pymysql
