@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BricoLoop — Les outils de votre quartier</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif;color:#17362e;background:#f7f9f5}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}header{background:#fff;border-bottom:1px solid #e4ebe5}.nav{max-width:1140px;margin:auto;padding:20px 25px;display:flex;justify-content:space-between;align-items:center}.logo{font-size:26px;font-weight:850;letter-spacing:-1.2px}.logo span{color:#3a9b6c}.nav small{font-size:12px;color:#70877c}.pill{border:1px solid #d5e8d9;background:#eff9f0;color:#367851;padding:8px 13px;border-radius:30px;font-size:13px}.hero{background:linear-gradient(115deg,#0d4938,#277858);color:white;padding:59px 25px 65px}.hero-inner{max-width:1140px;margin:auto}.eyebrow{color:#bbebc8;font-size:12px;font-weight:750;letter-spacing:2px;text-transform:uppercase}.hero h1{font-size:clamp(32px,5vw,57px);max-width:720px;line-height:1.12;letter-spacing:-1.8px;margin:17px 0}.hero p{max-width:580px;line-height:1.7;color:#d9eee3;font-size:17px}.wrap{max-width:1140px;margin:0 auto;padding:34px 25px 70px}.controls{background:white;border:1px solid #e4ebe5;box-shadow:0 9px 35px #143a2608;border-radius:18px;padding:20px;display:grid;grid-template-columns:1fr 230px auto;gap:13px;align-items:end;margin-top:-72px;position:relative}.control label{display:block;font-size:12px;font-weight:750;color:#688076;margin-bottom:8px}.control input,.control select{width:100%;border:1px solid #dae5dd;border-radius:10px;background:#fafcf9;padding:13px 14px;color:#244339;outline:none}.control input:focus,.control select:focus{border-color:#32885e;box-shadow:0 0 0 3px #32885e19}.button{border:0;border-radius:10px;padding:14px 18px;background:#143f30;color:white;font-weight:750;white-space:nowrap}.button:hover{background:#246b4d}.button.secondary{background:#e8f3eb;color:#24583f}.summary{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:34px 0 20px}.summary h2{margin:0 0 6px;font-size:25px}.summary p{margin:0;color:#779086;font-size:14px}.source{font-size:12px;background:#eff4ee;color:#5b7569;border-radius:20px;padding:8px 12px}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.tool{background:white;border:1px solid #e1e9e2;border-radius:17px;overflow:hidden;box-shadow:0 8px 24px #123a2410;transition:transform .18s,box-shadow .18s}.tool:hover{transform:translateY(-3px);box-shadow:0 15px 30px #123a2422}.illustration{height:156px;display:flex;justify-content:center;align-items:center;position:relative;background:#e9f4e9}.tool:nth-child(3n+2) .illustration{background:#eef1e7}.tool:nth-child(3n+3) .illustration{background:#e8f0f3}.emoji{font-size:76px;filter:drop-shadow(0 7px 6px #233d2420)}.tag{position:absolute;right:14px;top:14px;background:white;color:#4a6656;border-radius:20px;padding:7px 10px;font-size:11px;font-weight:750}.details{padding:19px}.details h3{font-size:18px;margin:0 0 5px}.category{color:#84978a;font-size:13px;margin-bottom:18px}.bottom{border-top:1px solid #edf1eb;padding-top:15px;display:flex;justify-content:space-between;align-items:center;gap:10px}.status{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:750}.dot{height:9px;width:9px;background:#32a66e;border-radius:100%}.status.lent{color:#bd7938}.status.lent .dot{background:#dfa24f}.status.unavailable{color:#8b9691}.status.unavailable .dot{background:#abb9b0}.status.available{color:#288458}.smallbtn{border:1px solid #d8e8dd;background:#f4faf5;border-radius:9px;color:#296346;padding:9px 12px;font-size:12px;font-weight:700}.smallbtn:disabled{opacity:.55;cursor:not-allowed}.notice{background:#fffaf0;border:1px solid #f0dfbb;border-radius:12px;padding:13px 17px;color:#806530;font-size:13px;margin-bottom:18px;line-height:1.5}.empty{grid-column:1/-1;background:white;text-align:center;border:1px dashed #bdd4c3;border-radius:18px;padding:70px 18px}.empty strong{display:block;font-size:22px;margin:12px}.empty p{color:#738b7e}.footer{text-align:center;color:#8ba197;font-size:12px;margin-top:55px}.dialog{border:0;border-radius:18px;padding:30px;max-width:410px;width:calc(100% - 32px);box-shadow:0 20px 90px #0004}.dialog::backdrop{background:#0b2719aa}.dialog h2{margin:0 0 12px}.dialog p{line-height:1.6;color:#62766b}.dialog .button{width:100%;margin-top:15px}@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.controls{grid-template-columns:1fr 1fr}.controls .button{grid-column:1/-1}}@media(max-width:570px){.grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.nav{padding:16px}.wrap{padding-left:16px;padding-right:16px}.summary{align-items:start;flex-direction:column}.hero{padding-bottom:95px}.logo{font-size:23px}}
+</style>
+</head>
+<body>
+<header><div class="nav"><div class="logo">brico<span>loop</span> <small>↗</small></div><div class="pill">🌿 Partage entre voisins</div></div></header>
+<section class="hero"><div class="hero-inner"><div class="eyebrow">Emprunter plutôt qu’acheter</div><h1>Le bon outil, juste<br>à côté de chez vous.</h1><p>Perceuses, outils de jardin, matériel de bricolage… Découvrez ce que vos voisins mettent à disposition.</p></div></section>
+<main class="wrap"><section class="controls" aria-label="Filtres du catalogue"><div class="control"><label for="search">Rechercher un outil</label><input id="search" placeholder="Ex. perceuse, ponceuse, jardin…" autocomplete="off"></div><div class="control"><label for="category">Catégorie</label><select id="category"><option value="">Toutes les catégories</option></select></div><button class="button" id="refresh" type="button">↻ Charger l’API</button></section>
+<div class="summary"><div><h2>Les outils disponibles</h2><p id="count" aria-live="polite"></p></div><span class="source" id="source">Mode démonstration</span></div>
+<div id="notice" class="notice">Mode démonstration : vous pouvez parcourir le site tout de suite. Pour utiliser les vraies données, lancez FastAPI à <code>http://localhost:8000</code> puis cliquez sur « Charger l’API ».</div>
+<div class="grid" id="catalogue" aria-live="polite"></div><footer class="footer">BricoLoop · Projet EPSI B3 · US-01 — Catalogue des outils</footer></main>
+<dialog class="dialog" id="details"><h2 id="detailName"></h2><p id="detailText"></p><button class="button" id="closeDialog">Fermer</button></dialog>
+<script>
+'use strict';
+const demo=[
+{id:1,name:'Perceuse',category:'Perçage',description:'Perceuse avec forets',status:'lent'},
+{id:2,name:'Taille-haie',category:'Jardinage',description:'Taille-haie électrique',status:'available'},
+{id:3,name:'Rouleau',category:'Peinture',description:'Rouleau pour les murs',status:'available'},
+{id:4,name:'Nettoyeur',category:'Nettoyage',description:'Nettoyeur haute pression',status:'unavailable'},
+{id:5,name:'Niveau',category:'Mesure',description:'Niveau à bulle',status:'available'},
+{id:6,name:'Ponceuse',category:'Autre',description:'Ponceuse avec abrasifs',status:'available'},
+{id:7,name:'Visseuse',category:'Perçage',description:'Visseuse sans fil',status:'lent'},
+{id:8,name:'Sécateur',category:'Jardinage',description:'Sécateur manuel',status:'available'}
+];
+const statusNames={available:'Disponible',lent:'Prêté',unavailable:'Indisponible'};
+const iconByCat={'Perçage':'🛠️','Jardinage':'🌿','Peinture':'🖌️','Nettoyage':'🧽','Mesure':'📏','Autre':'🧰'};
+const $=id=>document.getElementById(id);
+let tools=demo.slice();
+function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x}
+function render(){
+ const q=$('search').value.trim().toLocaleLowerCase('fr');const cat=$('category').value;
+ const shown=tools.filter(t=>(!cat||t.category===cat)&&(!q||[t.name,t.description,t.category].some(v=>String(v||'').toLocaleLowerCase('fr').includes(q)))).sort((a,b)=>Number(b.status==='available')-Number(a.status==='available'));
+ $('count').textContent=`${shown.length} outil${shown.length!==1?'s':''} trouvé${shown.length!==1?'s':''} · les disponibles sont affichés en premier`;
+ const root=$('catalogue');root.replaceChildren();
+ if(!shown.length){const empty=el('div','empty');empty.append(el('div','emoji','🔎'),el('strong','',tools.length?'Aucun outil trouvé':'Aucun outil pour le moment'),el('p','',tools.length?'Essayez une autre recherche ou catégorie.':'Aucun outil n’est actuellement proposé.'));root.append(empty);return}
+ for(const tool of shown){
+  const card=el('article','tool');const illustration=el('div','illustration');illustration.append(el('span','emoji',iconByCat[tool.category]||'🧰'),el('span','tag',tool.category||'Autre'));
+  const d=el('div','details');d.append(el('h3','',tool.name),el('div','category',tool.description||'Un outil à partager'));
+  const bottom=el('div','bottom');const status=el('div','status '+tool.status);status.append(el('span','dot'),document.createTextNode(statusNames[tool.status]||tool.status));
+  const btn=el('button','smallbtn','Voir le détail →');btn.type='button';btn.addEventListener('click',()=>{$('detailName').textContent=tool.name;$('detailText').textContent=`Catégorie : ${tool.category}\nStatut : ${statusNames[tool.status]||tool.status}\n${tool.description||''}`;$('details').showModal()});bottom.append(status,btn);d.append(bottom);card.append(illustration,d);root.append(card)
+ }
+}
+function fillCategories(){const previous=$('category').value;$('category').replaceChildren(new Option('Toutes les catégories',''));for(const c of ['Perçage','Jardinage','Peinture','Nettoyage','Mesure','Autre'])$('category').add(new Option(c,c));$('category').value=previous}
+$('search').addEventListener('input',render);$('category').addEventListener('change',render);$('closeDialog').addEventListener('click',()=>$('details').close());
+$('refresh').addEventListener('click',async()=>{const button=$('refresh');button.disabled=true;button.textContent='Connexion…';try{const resp=await fetch('http://localhost:8000/api/tools',{headers:{Accept:'application/json'}});if(!resp.ok)throw new Error('HTTP '+resp.status);const data=await resp.json();if(!Array.isArray(data))throw new Error('La réponse n’est pas une liste JSON');tools=data;$('source').textContent='Données de FastAPI';$('notice').hidden=true;render()}catch(err){$('notice').hidden=false;$('notice').textContent=`Connexion API impossible (${err.message}). Les données actuellement affichées sont conservées. Vérifiez que FastAPI est démarrée et que CORS autorise cette page.`}finally{button.disabled=false;button.textContent='↻ Charger l’API'}});
+fillCategories();render();
+</script>
+</body></html>

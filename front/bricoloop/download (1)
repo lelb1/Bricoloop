@@ -1,0 +1,63 @@
+import { useEffect, useState } from 'react';
+
+const STATUS = {
+  available: { label: 'Disponible', className: 'available' },
+  lent: { label: 'Prêté', className: 'lent' },
+  unavailable: { label: 'Indisponible', className: 'unavailable' },
+};
+
+export function sortTools(tools) {
+  return [...tools].sort((a, b) => Number(b.status === 'available') - Number(a.status === 'available'));
+}
+
+export default function Catalogue() {
+  const [tools, setTools] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadTools() {
+      try {
+        const response = await fetch('/api/tools', { signal: controller.signal });
+        if (!response.ok) throw new Error(`Erreur HTTP ${response.status}`);
+        const data = await response.json();
+        if (!Array.isArray(data)) throw new Error('Format de données invalide');
+        setTools(data);
+      } catch (err) {
+        if (err.name !== 'AbortError') setError('Impossible de charger les outils. Vérifiez que l’API est démarrée.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    loadTools();
+    return () => controller.abort();
+  }, []);
+
+  return (
+    <main className="container">
+      <header className="hero"><span className="brand">🔧 BricoLoop</span><p>Les outils de vos voisins, à portée de main.</p></header>
+      <section aria-labelledby="catalog-title">
+        <h1 id="catalog-title">Catalogue des outils</h1>
+        <p className="intro">Découvrez les outils disponibles près de chez vous.</p>
+        {loading && <p role="status">Chargement des outils…</p>}
+        {!loading && error && <p role="alert" className="error">{error}</p>}
+        {!loading && !error && tools.length === 0 && <p>Aucun outil pour le moment</p>}
+        {!loading && !error && tools.length > 0 && (
+          <ul className="tool-grid">
+            {sortTools(tools).map((tool) => {
+              const status = STATUS[tool.status] ?? { label: tool.status, className: 'unavailable' };
+              return (
+                <li className="tool-card" key={tool.id}>
+                  <div className="tool-card-header"><span className="category">{tool.category}</span><span className={`status ${status.className}`}>{status.label}</span></div>
+                  <h2>{tool.name}</h2>
+                  {tool.description && <p>{tool.description}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </main>
+  );
+}
