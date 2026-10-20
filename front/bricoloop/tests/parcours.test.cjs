@@ -82,3 +82,8 @@ test('erreur 400 du catalogue conserve le message et le champ de l’API',async(
  const p=await page(path=>path==='/api/tools'?{status:400,body:{detail:[{field:'category',message:'Catégorie inconnue'}]}}:null);
  try{const message=p.w.document.getElementById('notice').textContent;assert.match(message,/category/);assert.match(message,/Catégorie inconnue/)}finally{p.close()}
 });
+
+test('la page garde les résultats Unicode trouvés par l’API',async()=>{
+ const p=await page(path=>path==='/api/tools'?{status:200,body:[{...tool,name:'Straße'}]}:null);
+ try{p.w.document.getElementById('search').value='STRASSE';p.w.document.getElementById('search').dispatchEvent(new p.w.Event('input'));await settle();assert.match(p.w.document.getElementById('catalogue').textContent,/Straße/)}finally{p.close()}
+});

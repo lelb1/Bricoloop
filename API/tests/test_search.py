@@ -27,3 +27,14 @@ def test_search_combines_with_category_and_ignores_category_text(make_app):
         assert client.get("/api/tools?q=Bosch&category=Perçage").json()[0]["id"] == 1
         assert client.get("/api/tools?q=Autre").json() == []
         assert client.get("/api/tools?q=visseuse").json()[0]["description"] is None
+
+
+def test_unicode_casefold_search(make_app):
+    from app.models import Tool
+
+    with TestClient(
+        make_app(tools=[Tool(id=9, ownerId=1, name="Straße", category="Autre")])
+    ) as client:
+        response = client.get("/api/tools", params={"q": "STRASSE"})
+        assert response.status_code == 200
+        assert [t["id"] for t in response.json()] == [9]

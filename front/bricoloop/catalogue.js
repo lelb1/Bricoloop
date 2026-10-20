@@ -18,7 +18,7 @@ let tools=[];
 function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x}
 function render(){
  const q=$('search').value.trim().toLocaleLowerCase('fr');const cat=$('category').value;
- const shown=tools.filter(t=>(!cat||t.category===cat)&&(!q||[t.name,t.description].some(v=>String(v||'').toLocaleLowerCase('fr').includes(q)))).sort((a,b)=>Number(b.status==='available')-Number(a.status==='available'));
+ const shown=[...tools].sort((a,b)=>Number(b.status==='available')-Number(a.status==='available'));
  $('count').textContent=`${shown.length} outil${shown.length!==1?'s':''} trouvé${shown.length!==1?'s':''} · les disponibles sont affichés en premier`;
  const root=$('catalogue');root.replaceChildren();
  if(!shown.length){const empty=el('div','empty');empty.append(el('div','emoji','🔎'),el('strong','',(tools.length||q||cat)?'Aucun outil trouvé':'Aucun outil pour le moment'),el('p','',(tools.length||q||cat)?'Essayez une autre recherche ou catégorie.':'Aucun outil n’est actuellement proposé.'));root.append(empty);return}
