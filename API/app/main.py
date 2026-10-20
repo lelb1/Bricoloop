@@ -73,6 +73,11 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
     @app.get(
         "/api/tools/{tool_id}",
         response_model=ToolDetail,
+        summary="Consulter la fiche d’un outil",
+        description=(
+            "Renvoie le nom, la catégorie, la description et le statut de l’outil, "
+            "ainsi que le prénom et le quartier de son propriétaire dans owner."
+        ),
         responses={
             404: {
                 "description": "Aucun outil ne correspond à cet identifiant",

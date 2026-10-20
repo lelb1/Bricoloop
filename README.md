@@ -75,3 +75,22 @@ y compris un identifiant absent entre deux identifiants existants.
 Corps de la réponse : `{"detail":"Outil introuvable"}`.
 Un identifiant non entier reste une erreur de format `422`.
 La réponse `404` est documentée dans Swagger (`/docs`).
+
+## US-03 : contenu de la fiche outil
+
+`GET /api/tools/4` renvoie par exemple :
+
+```json
+{
+  "id": 4,
+  "ownerId": 2,
+  "name": "Nettoyeur haute pression",
+  "category": "Nettoyage",
+  "description": "Kärcher 130 bars",
+  "status": "lent",
+  "owner": {"id": 2, "firstName": "Marc", "district": "Gare"}
+}
+```
+
+Le prénom et le quartier correspondent au propriétaire de l'outil demandé.
+La fiche est disponible pour les trois statuts ; une description absente vaut `null`.

@@ -49,3 +49,28 @@ def test_unknown_id_between_existing_tools(make_app):
         assert response.status_code == 404
         assert response.json() == {"detail": "Outil introuvable"}
         assert client.get("/api/tools/3").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "tool_id,name,category,description,status,first_name,district",
+    [
+        (4, "Nettoyeur haute pression", "Nettoyage", "Kärcher 130 bars", "lent", "Marc", "Gare"),
+        (5, "Mètre laser", "Mesure", "Portée 40 m", "available", "Sarah", "Jardins"),
+        (8, "Escabeau 5 marches", "Autre", "Aluminium", "unavailable", "Lucas", "Centre"),
+    ],
+)
+def test_detail_returns_requested_tool_and_its_owner(
+    make_app, tool_id, name, category, description, status, first_name, district
+):
+    with TestClient(make_app()) as client:
+        response = client.get(f"/api/tools/{tool_id}")
+        assert response.status_code == 200
+        detail = response.json()
+        assert detail["id"] == tool_id
+        assert detail["name"] == name
+        assert detail["category"] == category
+        assert detail["description"] == description
+        assert detail["status"] == status
+        assert detail["owner"]["id"] == detail["ownerId"]
+        assert detail["owner"]["firstName"] == first_name
+        assert detail["owner"]["district"] == district
