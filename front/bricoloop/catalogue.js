@@ -24,7 +24,7 @@ $('search').addEventListener('input',loadTools);$('category').addEventListener('
 
 let currentDetail=null;
 async function loadDetail(id){
- currentDetail=null;$('loanForm').hidden=true;$('loanMessage').textContent='';$('editEtatForm').hidden=true;$('etatMessage').textContent='';
+ currentDetail=null;$('historyPanel').hidden=true;$('toolHistory').replaceChildren();$('loanForm').hidden=true;$('loanMessage').textContent='';$('editEtatForm').hidden=true;$('etatMessage').textContent='';
  $('detailName').textContent='Chargement…';$('detailText').textContent='';if(!$('details').open)$('details').showModal();
  try{
   const response=await fetch(`${API_URL}/api/tools/${id}`);
@@ -57,7 +57,7 @@ async function loadTools(){
 }
 $('refresh').addEventListener('click',loadTools);
 function updateEtatEditor(){
- updateLoanForm();
+ updateLoanForm();loadHistory();
  const own=currentDetail&&Number($('profile').value)===currentDetail.ownerId;
  $('editEtatForm').hidden=!own;
  if(currentDetail)$('editEtat').value=currentDetail.etat||'';
@@ -159,6 +159,18 @@ async function loadOwned(){
   $('ownedMessage').textContent=data.length?'':'Vous ne proposez aucun outil.';
   for(const tool of data){const card=el('article','tool');const body=el('div','details');body.append(el('h3','',tool.name),el('p','',statusNames[tool.status]||tool.status),el('p','',`${tool.pendingRequests} demande(s) en attente`));const button=el('button','smallbtn','Ouvrir la fiche');button.type='button';button.addEventListener('click',()=>loadDetail(tool.id));body.append(button);card.append(body);root.append(card)}
  }catch(error){if(user===$('profile').value)$('ownedMessage').textContent=error.message}
+}
+async function loadHistory(){
+ const user=$('profile').value;const tool=currentDetail;const root=$('toolHistory');root.replaceChildren();
+ const own=tool&&Number(user)===tool.ownerId;$('historyPanel').hidden=!own;if(!own)return;
+ $('historyMessage').textContent='Chargement…';
+ try{
+  const response=await fetch(`${API_URL}/api/tools/${tool.id}/history`,{headers:{'X-User-Id':user}});
+  const data=await response.json();if(user!==$('profile').value||!currentDetail||currentDetail.id!==tool.id)return;
+  if(!response.ok)throw new Error('Impossible de charger l’historique');
+  $('historyMessage').textContent=data.length?'':'Aucun prêt accepté ou rendu pour cet outil.';
+  for(const loan of data){const item=el('article');item.append(el('p','',`${loan.borrower.firstName} — du ${loan.startDate} au ${loan.endDate} — ${loanStatusNames[loan.status]||loan.status}`));if(loan.rating!==null&&loan.rating!==undefined)item.append(el('p','',`Note : ${loan.rating}/5`));root.append(item)}
+ }catch(error){if(user===$('profile').value&&currentDetail?.id===tool.id)$('historyMessage').textContent=error.message}
 }
 async function loadUsers(){
  try{

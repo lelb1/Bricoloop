@@ -73,3 +73,7 @@ test('noter un emprunteur après retour et afficher la note',async()=>{
   assert.equal(rating,5);assert.match(p.w.document.getElementById('receivedLoans').textContent,/5\/5/);assert.equal(p.w.document.querySelector('#receivedLoans form'),null);
  }finally{p.close()}
 });
+test('historique visible dans la fiche du propriétaire',async()=>{
+ const p=await page(path=>path==='/api/tools/1/history'?{status:200,body:[{id:4,borrower:users[1],startDate:'2026-01-01',endDate:'2026-01-02',status:'returned',rating:4}]}:null);
+ try{p.change('profile','1');await settle();p.w.document.querySelector('#catalogue button').click();await settle();assert.equal(p.w.document.getElementById('historyPanel').hidden,false);assert.match(p.w.document.getElementById('toolHistory').textContent,/Marc/);assert.match(p.w.document.getElementById('toolHistory').textContent,/4\/5/);p.change('profile','2');await settle();assert.equal(p.w.document.getElementById('historyPanel').hidden,true)}finally{p.close()}
+});

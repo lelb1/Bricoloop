@@ -217,3 +217,11 @@ Dans les demandes reçues, un formulaire apparaît sur les prêts rendus non not
 La note est enregistrée dans `evaluation`, avec une contrainte unique sur `loanId`.
 Après mise à jour, lancer `cd API && python -m app.init_db` pour créer cette table
 sans toucher aux données existantes.
+
+## US-14 : historique des prêts d’un outil
+
+`GET /api/tools/{id}/history` avec `X-User-Id` du propriétaire affiche uniquement
+les prêts `accepted` et `returned`, triés par début décroissant puis identifiant
+décroissant. Les noms des emprunteurs et notes sont inclus.
+Outil inconnu : 404 ; autre profil : 403 ; historique vide : `[]`.
+Dans la fiche du propriétaire, la section « Historique des prêts » présente cette liste.

@@ -319,6 +319,34 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             for tool, count in rows
         ]
 
+    @app.get("/api/tools/{tool_id}/history", response_model=list[ReceivedLoan])
+    def tool_history(
+        tool_id: int,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        tool = session.get(ToolRow, tool_id)
+        if tool is None:
+            raise HTTPException(status_code=404, detail="Outil introuvable")
+        if tool.ownerId != user_id:
+            raise HTTPException(status_code=403, detail="Historique réservé au propriétaire")
+        rows = session.execute(
+            select(LocationRow, UserRow, RatingRow.score)
+            .join(UserRow, LocationRow.borrowerId == UserRow.id)
+            .outerjoin(RatingRow, RatingRow.loanId == LocationRow.id)
+            .where(LocationRow.toolId == tool_id, LocationRow.status.in_(["accepted", "returned"]))
+            .order_by(LocationRow.startDate.desc(), LocationRow.id.desc())
+        ).all()
+        return [
+            ReceivedLoan(
+                **Loan.model_validate(loan).model_dump(),
+                toolName=tool.name,
+                borrower=User.model_validate(borrower),
+                rating=score,
+            )
+            for loan, borrower, score in rows
+        ]
+
     @app.get("/api/users", response_model=list[User])
     def list_users(session: DbSession):
         return session.scalars(select(UserRow).order_by(UserRow.id)).all()
