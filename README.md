@@ -2,11 +2,14 @@
 
 API de prêt d'outils entre voisins, réalisée avec Python et FastAPI.
 
+Le code, les tests et la configuration du backend se trouvent dans `API/`.
+
 ## Installation et lancement
 
 Python 3.10 ou supérieur.
 
 ```bash
+cd API
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
@@ -16,6 +19,8 @@ python -m uvicorn app.main:app --reload
 Documentation interactive : http://127.0.0.1:8000/docs
 
 ## Vérifications
+
+Depuis le dossier `API`, avec l’environnement virtuel activé :
 
 ```bash
 python -m ruff check . --output-format concise
