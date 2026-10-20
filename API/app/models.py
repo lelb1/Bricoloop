@@ -85,6 +85,7 @@ class LoanDecision(BaseModel):
 
 
 class ReceivedLoan(Loan):
+    rating: int | None = None
     toolName: str
     borrower: User
 
@@ -95,3 +96,15 @@ class BorrowedLoan(Loan):
 
 class OwnedTool(Tool):
     pendingRequests: int
+
+
+class RatingCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    score: int = Field(ge=1, le=5, strict=True)
+
+
+class Rating(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    loanId: int
+    score: int

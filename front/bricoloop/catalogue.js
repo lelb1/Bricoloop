@@ -121,6 +121,15 @@ async function loadReceived(){
      }catch(error){$('receivedMessage').textContent=error.message;buttons.forEach(b=>b.disabled=false)}
     });body.append(button);
    }
+   if(loan.status==='returned'){
+    if(loan.rating!==null&&loan.rating!==undefined)body.append(el('p','',`Note de l’emprunteur : ${loan.rating}/5`));
+    else{
+     const form=el('form');const label=el('label','',`Note pour ${loan.borrower.firstName} `);const select=el('select');select.required=true;select.setAttribute('aria-label',`Note de l’emprunteur pour le prêt ${loan.id}`);select.append(new Option('Choisir une note',''));for(let i=1;i<=5;i++)select.append(new Option(`${i}/5`,i));label.append(select);const button=el('button','smallbtn','Noter l’emprunteur');button.type='submit';form.append(label,button);
+     form.addEventListener('submit',async(event)=>{event.preventDefault();button.disabled=true;try{
+      const response=await fetch(`${API_URL}/api/loans/${loan.id}/rating`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':user},body:JSON.stringify({score:Number(select.value)})});const data=await response.json();if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Notation impossible');await loadReceived();
+     }catch(error){$('receivedMessage').textContent=error.message;button.disabled=false}});body.append(form);
+    }
+   }
    card.append(body);root.append(card);
   }
  }catch(error){if(user===$('profile').value)$('receivedMessage').textContent=error.message}

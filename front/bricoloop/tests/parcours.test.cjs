@@ -61,3 +61,15 @@ test('recherche et catégorie envoyées à l’API',async()=>{
   const requests=p.calls.filter(c=>c.path==='/api/tools');assert.ok(requests.length>=3);const last=new URL(requests.at(-1).url);assert.equal(last.searchParams.get('q'),'Bosch');assert.equal(last.searchParams.get('category'),'Jardinage');
  }finally{p.close()}
 });
+test('noter un emprunteur après retour et afficher la note',async()=>{
+ let rating=null;
+ const p=await page((path,o)=>{
+  if(path==='/api/loans/received')return {status:200,body:[{id:3,toolId:1,borrowerId:2,toolName:'Perceuse Bosch',borrower:users[1],startDate:'2026-01-01',endDate:'2026-01-02',status:'returned',rating}]};
+  if(path==='/api/loans/3/rating'){rating=JSON.parse(o.body).score;return {status:201,body:{id:1,loanId:3,score:rating}}}
+ });
+ try{
+  p.change('profile','1');await settle();const form=p.w.document.querySelector('#receivedLoans form');assert.ok(form);
+  form.querySelector('select').value='5';form.dispatchEvent(new p.w.Event('submit',{cancelable:true}));await settle();
+  assert.equal(rating,5);assert.match(p.w.document.getElementById('receivedLoans').textContent,/5\/5/);assert.equal(p.w.document.querySelector('#receivedLoans form'),null);
+ }finally{p.close()}
+});

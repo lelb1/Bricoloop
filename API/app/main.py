@@ -15,7 +15,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.database import LocationRow, ToolRow, UserRow, make_engine
+from app.database import LocationRow, RatingRow, ToolRow, UserRow, make_engine
 from app.models import (
     BorrowedLoan,
     Category,
@@ -23,6 +23,8 @@ from app.models import (
     LoanCreate,
     LoanDecision,
     OwnedTool,
+    Rating,
+    RatingCreate,
     ReceivedLoan,
     Tool,
     ToolCreate,
@@ -66,7 +68,11 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
     async def invalid_request(request, exc):
         if (
             request.method == "POST"
-            and (request.url.path == "/api/tools" or request.url.path.endswith("/loans"))
+            and (
+                request.url.path == "/api/tools"
+                or request.url.path.endswith("/loans")
+                or request.url.path.startswith("/api/loans/")
+            )
         ) or (
             request.method == "PATCH"
             and request.url.path.startswith(("/api/tools/", "/api/loans/"))
@@ -188,9 +194,10 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         if session.get(UserRow, user_id) is None:
             raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
         rows = session.execute(
-            select(LocationRow, ToolRow.name, UserRow)
+            select(LocationRow, ToolRow.name, UserRow, RatingRow.score)
             .join(ToolRow, LocationRow.toolId == ToolRow.id)
             .join(UserRow, LocationRow.borrowerId == UserRow.id)
+            .outerjoin(RatingRow, RatingRow.loanId == LocationRow.id)
             .where(ToolRow.ownerId == user_id)
             .order_by(LocationRow.id.desc())
         ).all()
@@ -199,8 +206,9 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
                 **Loan.model_validate(loan).model_dump(),
                 toolName=name,
                 borrower=User.model_validate(borrower),
+                rating=score,
             )
-            for loan, name, borrower in rows
+            for loan, name, borrower, score in rows
         ]
 
     @app.patch("/api/loans/{loan_id}", response_model=Loan)
@@ -255,6 +263,37 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.commit()
         session.refresh(loan)
         return loan
+
+    @app.post("/api/loans/{loan_id}/rating", response_model=Rating, status_code=201)
+    def rate_borrower(
+        loan_id: int,
+        payload: RatingCreate,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        tool_id = session.scalar(select(LocationRow.toolId).where(LocationRow.id == loan_id))
+        if tool_id is None:
+            raise HTTPException(status_code=404, detail="Prêt introuvable")
+        tool = session.scalar(select(ToolRow).where(ToolRow.id == tool_id).with_for_update())
+        loan = session.scalar(
+            select(LocationRow).where(LocationRow.id == loan_id).with_for_update()
+        )
+        if tool.ownerId != user_id:
+            raise HTTPException(
+                status_code=403, detail="Seul le propriétaire peut noter l’emprunteur"
+            )
+        if loan.status != "returned":
+            raise HTTPException(status_code=409, detail="Le prêt doit être rendu avant de noter")
+        existing = session.scalar(
+            select(RatingRow).where(RatingRow.loanId == loan_id).with_for_update()
+        )
+        if existing is not None:
+            raise HTTPException(status_code=409, detail="Ce prêt a déjà une note")
+        rating = RatingRow(loanId=loan_id, score=payload.score)
+        session.add(rating)
+        session.commit()
+        session.refresh(rating)
+        return rating
 
     @app.get("/api/tools/mine", response_model=list[OwnedTool])
     def my_tools(

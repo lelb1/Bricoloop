@@ -207,3 +207,13 @@ La recherche peut se combiner à `category`. Le champ du catalogue utilise cette
 `GET /api/tools/mine` avec `X-User-Id` retourne mes outils avec `pendingRequests`,
 le nombre de demandes en attente. La section « Mes outils » affiche ces compteurs ;
 « Demandes reçues » permet de répondre. Les autres propriétaires sont exclus.
+
+## US-13 : noter l’emprunteur après retour
+
+`POST /api/loans/{id}/rating` avec `X-User-Id` et `{"score":5}` :
+seul le propriétaire peut noter (403 sinon), uniquement un prêt rendu (409 sinon),
+une seule note par prêt (409 si déjà noté), entier de 1 à 5 (400 sinon).
+Dans les demandes reçues, un formulaire apparaît sur les prêts rendus non notés.
+La note est enregistrée dans `evaluation`, avec une contrainte unique sur `loanId`.
+Après mise à jour, lancer `cd API && python -m app.init_db` pour créer cette table
+sans toucher aux données existantes.

@@ -56,6 +56,14 @@ class LocationRow(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
 
 
+class RatingRow(Base):
+    __tablename__ = "evaluation"
+    __table_args__ = (CheckConstraint("score BETWEEN 1 AND 5"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    loanId: Mapped[int] = mapped_column(ForeignKey("location.id"), unique=True)
+    score: Mapped[int]
+
+
 def database_url() -> URL:
     load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     return URL.create(
