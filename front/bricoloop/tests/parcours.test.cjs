@@ -13,7 +13,7 @@ async function page(handler=()=>null){
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true};
  w.HTMLDialogElement.prototype.close=function(){this.open=false};
  w.fetch=async(url,options={})=>{
-  const path=new URL(url).pathname;calls.push({path,...options});
+  const path=new URL(url).pathname;calls.push({path,url,...options});
   const custom=await handler(path,options);
   if(custom)return {ok:custom.status<400,status:custom.status,json:async()=>custom.body};
   const body=path==='/api/users'?users:path==='/api/tools'?[tool]:path==='/api/tools/1'?{...tool,owner:users[0]}:[];
@@ -53,4 +53,11 @@ test('le propriétaire ne peut pas demander son outil',async()=>{
 test('panne API : aucune donnée statique affichée',async()=>{
  const p=await page(path=>path==='/api/tools'?{status:503,body:{detail:'Base indisponible'}}:null);
  try{assert.equal(p.w.document.getElementById('catalogue').children.length,0);assert.match(p.w.document.getElementById('notice').textContent,/Impossible/)}finally{p.close()}
+});
+test('recherche et catégorie envoyées à l’API',async()=>{
+ const p=await page();try{
+  p.change('category','Jardinage');
+  p.w.document.getElementById('search').value='Bosch';p.w.document.getElementById('search').dispatchEvent(new p.w.Event('input'));await settle();
+  const requests=p.calls.filter(c=>c.path==='/api/tools');assert.ok(requests.length>=3);const last=new URL(requests.at(-1).url);assert.equal(last.searchParams.get('q'),'Bosch');assert.equal(last.searchParams.get('category'),'Jardinage');
+ }finally{p.close()}
 });

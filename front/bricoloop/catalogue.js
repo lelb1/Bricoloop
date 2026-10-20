@@ -8,10 +8,10 @@ let tools=[];
 function el(tag,cls,text){const x=document.createElement(tag);if(cls)x.className=cls;if(text!==undefined)x.textContent=String(text);return x}
 function render(){
  const q=$('search').value.trim().toLocaleLowerCase('fr');const cat=$('category').value;
- const shown=tools.filter(t=>(!cat||t.category===cat)&&(!q||[t.name,t.description,t.category].some(v=>String(v||'').toLocaleLowerCase('fr').includes(q)))).sort((a,b)=>Number(b.status==='available')-Number(a.status==='available'));
+ const shown=tools.filter(t=>(!cat||t.category===cat)&&(!q||[t.name,t.description].some(v=>String(v||'').toLocaleLowerCase('fr').includes(q)))).sort((a,b)=>Number(b.status==='available')-Number(a.status==='available'));
  $('count').textContent=`${shown.length} outil${shown.length!==1?'s':''} trouvé${shown.length!==1?'s':''} · les disponibles sont affichés en premier`;
  const root=$('catalogue');root.replaceChildren();
- if(!shown.length){const empty=el('div','empty');empty.append(el('div','emoji','🔎'),el('strong','',tools.length?'Aucun outil trouvé':'Aucun outil pour le moment'),el('p','',tools.length?'Essayez une autre recherche ou catégorie.':'Aucun outil n’est actuellement proposé.'));root.append(empty);return}
+ if(!shown.length){const empty=el('div','empty');empty.append(el('div','emoji','🔎'),el('strong','',(tools.length||q||cat)?'Aucun outil trouvé':'Aucun outil pour le moment'),el('p','',(tools.length||q||cat)?'Essayez une autre recherche ou catégorie.':'Aucun outil n’est actuellement proposé.'));root.append(empty);return}
  for(const tool of shown){
   const card=el('article','tool');const illustration=el('div','illustration');illustration.append(el('span','emoji',iconByCat[tool.category]||'🧰'),el('span','tag',tool.category||'Autre'));
   const d=el('div','details');d.append(el('h3','',tool.name),el('div','category',tool.description||'Un outil à partager'),el('p','',`État : ${tool.etat||'Non renseigné'}`));
@@ -20,7 +20,7 @@ function render(){
  }
 }
 function fillCategories(){const previous=$('category').value;$('category').replaceChildren(new Option('Toutes les catégories',''));for(const c of ['Perçage','Jardinage','Peinture','Nettoyage','Mesure','Autre'])$('category').add(new Option(c,c));$('category').value=previous}
-$('search').addEventListener('input',render);$('category').addEventListener('change',loadTools);$('closeDialog').addEventListener('click',()=>$('details').close());
+$('search').addEventListener('input',loadTools);$('category').addEventListener('change',loadTools);$('closeDialog').addEventListener('click',()=>$('details').close());
 
 let currentDetail=null;
 async function loadDetail(id){
@@ -42,7 +42,7 @@ async function loadTools(){
  const button=$('refresh');button.disabled=true;button.textContent='Connexion…';
  $('source').textContent='Chargement…';
  try{
-  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);
+  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);if($('search').value.trim())params.set('q',$('search').value.trim());
   const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{headers:{Accept:'application/json'}});
   if(!response.ok)throw new Error('HTTP '+response.status);
   const data=await response.json();if(request!==catalogueRequest)return;
@@ -156,7 +156,7 @@ $('addForm').addEventListener('submit',async(event)=>{
  event.preventDefault();const button=$('submitAdd');button.disabled=true;$('addError').textContent='';
  try{
   const payload={name:$('toolName').value,category:$('toolCategory').value,description:$('toolDescription').value||null,etat:$('toolEtat').value||null};
-  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);
+  const params=new URLSearchParams();if($('category').value)params.set('category',$('category').value);if($('search').value.trim())params.set('q',$('search').value.trim());
   const response=await fetch(`${API_URL}/api/tools${params.size?'?'+params:''}`,{method:'POST',headers:{'Content-Type':'application/json','X-User-Id':$('profile').value},body:JSON.stringify(payload)});
   const data=await response.json();
   if(!response.ok)throw new Error(Array.isArray(data.detail)?data.detail.map(e=>`${e.field} : ${e.message}`).join(' · '):data.detail||'Ajout impossible');

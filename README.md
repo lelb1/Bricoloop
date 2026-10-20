@@ -195,3 +195,9 @@ Tests du front : `cd front/bricoloop && npm install && npm run check`.
 
 `GET /api/tools?category=Jardinage` filtre en base et conserve les disponibles en premier.
 Catégorie inconnue : 400. Le sélecteur du site appelle ce filtre API.
+
+## US-11 : recherche
+
+`GET /api/tools?q=bosch` recherche dans le nom et la description sans distinction
+de casse, y compris les accents en majuscules. Aucun résultat : `[]`.
+La recherche peut se combiner à `category`. Le champ du catalogue utilise cette API.

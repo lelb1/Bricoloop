@@ -260,13 +260,21 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         return session.scalars(select(UserRow).order_by(UserRow.id)).all()
 
     @app.get("/api/tools", response_model=list[Tool])
-    def list_tools(session: DbSession, category: str | None = None):
+    def list_tools(session: DbSession, category: str | None = None, q: str = ""):
         query = select(ToolRow)
         if category is not None:
             if category not in get_args(Category):
                 raise HTTPException(status_code=400, detail="category : catégorie inconnue")
             query = query.where(ToolRow.category == category)
-        return session.scalars(query.order_by(ToolRow.status != "available", ToolRow.id)).all()
+        tools = session.scalars(query.order_by(ToolRow.status != "available", ToolRow.id)).all()
+        keyword = q.strip().casefold()
+        return [
+            tool
+            for tool in tools
+            if not keyword
+            or keyword in tool.name.casefold()
+            or keyword in (tool.description or "").casefold()
+        ]
 
     @app.get(
         "/api/tools/{tool_id}",
