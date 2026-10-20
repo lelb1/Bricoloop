@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
@@ -24,6 +25,12 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             database.dispose()
 
     app = FastAPI(title="BricoLoop API", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5500", "http://127.0.0.1:5500"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type", "X-User-Id"],
+    )
 
     def get_session():
         with Session(database) as session:

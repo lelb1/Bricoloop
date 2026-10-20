@@ -94,3 +94,16 @@ La réponse `404` est documentée dans Swagger (`/docs`).
 
 Le prénom et le quartier correspondent au propriétaire de l'outil demandé.
 La fiche est disponible pour les trois statuts ; une description absente vaut `null`.
+
+## Front connecté à la base
+
+Lancer FastAPI sur le port 8000, puis depuis la racine du dépôt, dans un autre terminal :
+
+```bash
+python3 -m http.server 5500 --directory front/bricoloop
+```
+
+Ouvrir http://localhost:5500/bricoloop-catalogue.html (pas directement en fichier local).
+La page charge automatiquement `GET /api/tools`, sans données statiques de secours.
+« Actualiser » recharge la base ; « Voir le détail » appelle `GET /api/tools/{id}`.
+Les origines localhost et 127.0.0.1 sur le port 5500 sont autorisées par CORS.
