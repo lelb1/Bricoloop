@@ -182,3 +182,11 @@ Un prêt rendu ne bloque plus les demandes sur ses anciennes dates.
 `GET /api/loans/mine` avec `X-User-Id` retourne uniquement les demandes et prêts
 de cet utilisateur, triés par date de début croissante. Le front les affiche dans
 « Mes emprunts » avec le nom de l’outil, les dates et le statut.
+
+## US-09 : parcours web intégré
+
+FastAPI sert aussi le site : ouvrir http://localhost:8000/ après avoir lancé l'API.
+Un seul serveur suffit ; le port 5500 reste utilisable. Le parcours est : choisir
+un profil → catalogue → fiche → dates → demande, avec erreurs API affichées en clair.
+Le JavaScript du site est dans `front/bricoloop/catalogue.js`.
+Tests du front : `cd front/bricoloop && npm install && npm run check`.

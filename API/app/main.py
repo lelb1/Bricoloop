@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
@@ -7,7 +8,8 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -44,6 +46,13 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["Content-Type", "X-User-Id"],
     )
+
+    frontend = Path(__file__).resolve().parents[2] / "front" / "bricoloop"
+    app.mount("/web", StaticFiles(directory=frontend), name="web")
+
+    @app.get("/", include_in_schema=False)
+    def website():
+        return RedirectResponse("/web/bricoloop-catalogue.html")
 
     def get_session():
         with Session(database) as session:
