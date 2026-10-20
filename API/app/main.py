@@ -1,14 +1,17 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
-from app.database import ToolRow, make_engine
-from app.models import Tool, ToolDetail
+from app.database import ToolRow, UserRow, make_engine
+from app.models import Tool, ToolCreate, ToolDetail
 
 
 def create_app(*, engine: Engine | None = None) -> FastAPI:
@@ -28,11 +31,38 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
 
     DbSession = Annotated[Session, Depends(get_session)]
 
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request, exc):
+        if request.method == "POST" and request.url.path == "/api/tools":
+            errors = [
+                {"field": ".".join(map(str, error["loc"][1:])) or "body", "message": error["msg"]}
+                for error in exc.errors()
+            ]
+            return JSONResponse(status_code=400, content={"detail": errors})
+        return await request_validation_exception_handler(request, exc)
+
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
-        from fastapi.responses import JSONResponse
-
         return JSONResponse(status_code=503, content={"detail": "Base de données indisponible"})
+
+    @app.post(
+        "/api/tools",
+        response_model=Tool,
+        status_code=201,
+        responses={400: {"description": "Champ invalide ou utilisateur inconnu"}},
+    )
+    def create_tool(
+        payload: ToolCreate,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        if session.get(UserRow, user_id) is None:
+            raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
+        tool = ToolRow(**payload.model_dump(), ownerId=user_id, status="available")
+        session.add(tool)
+        session.commit()
+        session.refresh(tool)
+        return tool
 
     @app.get("/api/tools", response_model=list[Tool])
     def list_tools(session: DbSession):

@@ -47,3 +47,23 @@ Routes : `GET /api/tools`, `GET /api/tools/{id}`, `GET /health`.
 Le détail inclut `owner.firstName` et `owner.district` ; `description` peut être `null`.
 Les routes des locations ne font pas partie des US-01 et US-03.
 Les tests se lancent depuis `API/` et utilisent SQLite, sans modifier MySQL.
+
+## US-02 : proposer un outil
+
+`POST /api/tools` avec l'en-tête `X-User-Id` d'un utilisateur existant.
+Le serveur attribue le propriétaire et le statut `available`, puis renvoie `201`.
+Nom obligatoire (2 à 60 caractères après suppression des espaces aux extrémités),
+catégorie autorisée, description facultative (300 caractères maximum).
+Une erreur renvoie `400` avec le champ concerné ; propriétaire, statut et identifiant
+ne doivent pas être envoyés dans le corps. Les autres routes conservent leurs codes.
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/tools \
+  -H 'Content-Type: application/json' -H 'X-User-Id: 2' \
+  -d '{"name":"Marteau","category":"Autre","description":"Manche bois"}'
+```
+
+Les tables créées par `python -m app.init_db` génèrent automatiquement les identifiants.
+Si vous avez importé `bdd/bricoloop.sql` directement sous MySQL/MariaDB, appliquez
+`API/migrations/001_outil_auto_increment.mysql.sql` pour activer cette génération.
+Cette migration conserve les données.

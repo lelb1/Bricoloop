@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 Category = Literal["Perçage", "Jardinage", "Peinture", "Nettoyage", "Mesure", "Autre"]
 ToolStatus = Literal["available", "lent", "unavailable"]
@@ -27,3 +27,16 @@ class Tool(BaseModel):
 
 class ToolDetail(Tool):
     owner: User
+
+
+class ToolCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=2, max_length=60)
+    category: Category
+    description: str | None = Field(default=None, max_length=300)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def trim_name(cls, value):
+        return value.strip() if isinstance(value, str) else value
