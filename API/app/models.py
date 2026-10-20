@@ -47,3 +47,9 @@ class ToolCreate(BaseModel):
     @classmethod
     def trim_name(cls, value):
         return value.strip() if isinstance(value, str) else value
+
+
+class ToolEtatUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    etat: str | None = Field(..., max_length=300)

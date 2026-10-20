@@ -12,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import ToolRow, UserRow, make_engine
-from app.models import Tool, ToolCreate, ToolDetail, User
+from app.models import Tool, ToolCreate, ToolDetail, ToolEtatUpdate, User
 
 
 def create_app(*, engine: Engine | None = None) -> FastAPI:
@@ -28,7 +28,7 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["http://localhost:5500", "http://127.0.0.1:5500"],
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PATCH"],
         allow_headers=["Content-Type", "X-User-Id"],
     )
 
@@ -40,7 +40,9 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request, exc):
-        if request.method == "POST" and request.url.path == "/api/tools":
+        if (request.method == "POST" and request.url.path == "/api/tools") or (
+            request.method == "PATCH" and request.url.path.startswith("/api/tools/")
+        ):
             errors = [
                 {"field": ".".join(map(str, error["loc"][1:])) or "body", "message": error["msg"]}
                 for error in exc.errors()
@@ -67,6 +69,23 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
             raise HTTPException(status_code=400, detail="X-User-Id : utilisateur inconnu")
         tool = ToolRow(**payload.model_dump(), ownerId=user_id, status="available")
         session.add(tool)
+        session.commit()
+        session.refresh(tool)
+        return tool
+
+    @app.patch("/api/tools/{tool_id}/etat", response_model=Tool)
+    def update_etat(
+        tool_id: int,
+        payload: ToolEtatUpdate,
+        session: DbSession,
+        user_id: Annotated[int, Header(alias="X-User-Id", gt=0)],
+    ):
+        tool = session.get(ToolRow, tool_id)
+        if tool is None:
+            raise HTTPException(status_code=404, detail="Outil introuvable")
+        if tool.ownerId != user_id:
+            raise HTTPException(status_code=403, detail="Seul le propriétaire peut modifier l’état")
+        tool.etat = payload.etat
         session.commit()
         session.refresh(tool)
         return tool

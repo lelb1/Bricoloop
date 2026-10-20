@@ -116,3 +116,12 @@ Les profils viennent de `GET /api/users`. Le champ facultatif `etat` (300 caract
 est affiché dans le catalogue et la fiche ; les anciens outils affichent « Non renseigné ».
 Pour une base existante, appliquer `API/migrations/002_outil_etat.mysql.sql` seulement
 si la colonne `etat` est absente. L’état physique et le statut de disponibilité sont distincts.
+
+## Modifier l’état physique
+
+Sélectionner le profil du propriétaire, ouvrir la fiche de son outil, modifier
+l’état dans la popup et cliquer sur « Enregistrer l’état ».
+`PATCH /api/tools/{id}/etat` avec `X-User-Id` et `{"etat":"Bon état"}`
+sauvegarde en base. Seul le propriétaire peut modifier (403 sinon),
+identifiant inconnu : 404, champ invalide : 400 ; maximum 300 caractères.
+Le champ peut être vidé (`null`) sans modifier la disponibilité.
