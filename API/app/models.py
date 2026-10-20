@@ -21,6 +21,7 @@ class Tool(BaseModel):
     ownerId: int
     name: str
     category: Category
+    etat: str | None = None
     description: str | None = None
     status: ToolStatus = "available"
 
@@ -39,6 +40,8 @@ class ToolCreate(BaseModel):
     description: str | None = Field(
         default=None, max_length=300, description="Description facultative : 300 caractères maximum"
     )
+
+    etat: str | None = Field(default=None, max_length=300, description="État physique de l’outil")
 
     @field_validator("name", mode="before")
     @classmethod

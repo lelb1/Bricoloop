@@ -107,3 +107,12 @@ Ouvrir http://localhost:5500/bricoloop-catalogue.html (pas directement en fichie
 La page charge automatiquement `GET /api/tools`, sans données statiques de secours.
 « Actualiser » recharge la base ; « Voir le détail » appelle `GET /api/tools/{id}`.
 Les origines localhost et 127.0.0.1 sur le port 5500 sont autorisées par CORS.
+
+## Ajout depuis le front et état physique
+
+Choisir son profil, puis cliquer sur « Proposer un outil ». Le formulaire envoie
+`POST /api/tools` avec `X-User-Id` et recharge le catalogue après ajout.
+Les profils viennent de `GET /api/users`. Le champ facultatif `etat` (300 caractères maximum)
+est affiché dans le catalogue et la fiche ; les anciens outils affichent « Non renseigné ».
+Pour une base existante, appliquer `API/migrations/002_outil_etat.mysql.sql` seulement
+si la colonne `etat` est absente. L’état physique et le statut de disponibilité sont distincts.

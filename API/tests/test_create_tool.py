@@ -18,6 +18,7 @@ def test_create_tool_is_owned_available_and_persisted(make_app):
         assert tool == {
             "id": 9,
             "ownerId": 2,
+            "etat": None,
             "name": "Marteau",
             "category": "Autre",
             "description": "Manche bois",

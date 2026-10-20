@@ -34,6 +34,7 @@ class ToolRow(Base):
     ownerId: Mapped[int] = mapped_column(ForeignKey("utilisateur.id"), index=True)
     name: Mapped[str] = mapped_column(String(60))
     category: Mapped[str] = mapped_column(String(20))
+    etat: Mapped[str | None] = mapped_column(String(300), nullable=True)
     description: Mapped[str | None] = mapped_column(String(300), nullable=True)
     status: Mapped[str] = mapped_column(
         String(20), default="available", server_default="available", index=True

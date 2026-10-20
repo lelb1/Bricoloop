@@ -12,7 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import ToolRow, UserRow, make_engine
-from app.models import Tool, ToolCreate, ToolDetail
+from app.models import Tool, ToolCreate, ToolDetail, User
 
 
 def create_app(*, engine: Engine | None = None) -> FastAPI:
@@ -70,6 +70,10 @@ def create_app(*, engine: Engine | None = None) -> FastAPI:
         session.commit()
         session.refresh(tool)
         return tool
+
+    @app.get("/api/users", response_model=list[User])
+    def list_users(session: DbSession):
+        return session.scalars(select(UserRow).order_by(UserRow.id)).all()
 
     @app.get("/api/tools", response_model=list[Tool])
     def list_tools(session: DbSession):

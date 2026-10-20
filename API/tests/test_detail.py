@@ -8,6 +8,7 @@ def test_tool_detail_with_owner(make_app):
     assert response.json() == {
         "id": 1,
         "ownerId": 1,
+        "etat": None,
         "name": "Perceuse Bosch",
         "category": "Perçage",
         "description": "Perceuse à percussion 750 W",
